@@ -8,6 +8,14 @@ how the app was built.
 This is a local, single-user fork of Praxis: no accounts, no teams, no cloud —
 just you and the agent. It runs entirely on your machine via Docker.
 
+![The Praxis dashboard — your projects, each built by prompting the agent](docs/images/dashboard.png)
+
+Every project opens into a three-pane workspace: a file tree and Monaco editor on
+the left, a live preview of the running app in the middle, and a chat panel on the
+right that drives the agent. Prompt it, and it writes code, commits to git, and the
+preview hot-reloads — no local toolchain to install, since each project runs in its
+own Docker sandbox.
+
 ## How it works
 
 - **apps/web** — Next.js UI: dashboard, and a workspace with a file tree, Monaco
