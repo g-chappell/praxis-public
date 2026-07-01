@@ -70,13 +70,19 @@ pnpm install                 # install workspace deps (for the db tooling)
 pnpm db:push                 # create the tables
 pnpm db:seed                 # seed the single local user
 
-# 5. Start the app (Postgres + orchestrator + web).
-docker compose up web orchestrator
+# 5. Build + start the app (Postgres + orchestrator + web).
+docker compose up --build web orchestrator
 ```
 
-`docker compose up web orchestrator` also brings up `db` (it's a dependency) and
-prints logs in the foreground — add `-d` to run detached. The first `web` build
-takes a couple of minutes; wait for the `praxis-web` line to report it's ready.
+`docker compose up --build web orchestrator` builds the web + orchestrator images
+from the current source and brings up `db` too (it's a dependency). Logs print in
+the foreground — add `-d` to run detached. The first build takes a couple of
+minutes; wait for the `praxis-web` line to report it's ready.
+
+> **`--build` matters.** Without it, `docker compose up` reuses whatever
+> `praxis-web` / `praxis-orchestrator` image already exists and will serve **stale
+> code** after you pull changes. Always start with `--build` (or run
+> `docker compose build web orchestrator` first).
 
 ### Open the app
 
@@ -86,6 +92,10 @@ app (served at `http://<projectId>.preview.localhost:4001` — browsers resolve 
 `*.localhost` name to your machine, so there's no DNS or hosts-file setup).
 
 To stop everything: `docker compose down` (add `-v` to also wipe the database).
+
+**Updating to a newer version:** `git pull`, then rebuild before starting —
+`docker compose up --build web orchestrator`. If the schema changed, re-run
+`pnpm db:push`; if the sandbox image changed, re-run step 3.
 
 > **Prefer hot reload while hacking on Praxis itself?** After steps 1–4, run
 > `pnpm dev` instead of step 5 to start web (:3000) + orchestrator (:4001) on the
