@@ -36,37 +36,57 @@ Two abstractions are kept deliberately swappable: the `Sandbox` interface
 
 ## Requirements
 
-- Docker (Desktop on macOS/Windows, or Engine on Linux)
-- Node 20+ and [pnpm](https://pnpm.io) 9 (for the one-time DB setup and for
-  running the app on the host during development)
-- An [Anthropic API key](https://console.anthropic.com/)
+- **[Docker](https://docs.docker.com/get-docker/)** — Desktop on macOS/Windows, or
+  Engine on Linux. Must be running.
+- **[git](https://git-scm.com/)** — to clone the repo.
+- **Node 20+ and [pnpm](https://pnpm.io) 9** — used once, to create the database
+  schema + seed. (Install pnpm with `npm install -g pnpm` or `corepack enable`.)
+- An **[Anthropic API key](https://console.anthropic.com/)** — the agent runs on
+  your own key.
 
 ## Quickstart
 
-```bash
-# 1. Configure — the only required value is ANTHROPIC_API_KEY.
-cp .env.example .env
-$EDITOR .env
+Run these from the repo root. The whole app runs in Docker; Node/pnpm are only
+needed for the one-time schema + seed in step 4.
 
-# 2. Build the sandbox base image (once; ~a few minutes).
+```bash
+# 1. Clone the repo.
+git clone https://github.com/g-chappell/praxis-public.git
+cd praxis-public
+
+# 2. Configure. Copy the template and set ANTHROPIC_API_KEY (the only required value).
+cp .env.example .env
+$EDITOR .env          # paste your key into ANTHROPIC_API_KEY=
+
+# 3. Build the sandbox base image (once; takes a few minutes).
 docker compose --profile build build sandbox-base
 
-# 3. Install deps, create the database schema, and seed the local user.
-pnpm install
-docker compose up -d db
-pnpm db:push
-pnpm db:seed
+# 4. Create the database schema + seed the local user.
+docker compose up -d db      # start Postgres
+pnpm install                 # install workspace deps (for the db tooling)
+pnpm db:push                 # create the tables
+pnpm db:seed                 # seed the single local user
 
-# 4. Run the app.
-docker compose up web orchestrator      # containerized
-#   — or, for development with hot reload on the host:
-#   pnpm dev
+# 5. Start the app (Postgres + orchestrator + web).
+docker compose up web orchestrator
 ```
 
-Then open **http://localhost:3000**. Create a project, prompt the agent, and open
-the **Preview** tab — the running app is served at
-`http://<projectId>.preview.localhost:4001` (browsers resolve any `*.localhost`
-name to your machine, so no DNS or hosts-file setup is needed).
+`docker compose up web orchestrator` also brings up `db` (it's a dependency) and
+prints logs in the foreground — add `-d` to run detached. The first `web` build
+takes a couple of minutes; wait for the `praxis-web` line to report it's ready.
+
+### Open the app
+
+Go to **http://localhost:3000** — no login. Create a project, then prompt the
+agent in the chat panel; it writes code, and the **Preview** tab shows the running
+app (served at `http://<projectId>.preview.localhost:4001` — browsers resolve any
+`*.localhost` name to your machine, so there's no DNS or hosts-file setup).
+
+To stop everything: `docker compose down` (add `-v` to also wipe the database).
+
+> **Prefer hot reload while hacking on Praxis itself?** After steps 1–4, run
+> `pnpm dev` instead of step 5 to start web (:3000) + orchestrator (:4001) on the
+> host with live reload. Docker is still used for the per-project sandboxes.
 
 ## Configuration
 
