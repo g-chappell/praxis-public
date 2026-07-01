@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  caddyAsk,
   getPreview,
   previewUrlFor,
   previewWsSlug,
@@ -14,11 +13,17 @@ import {
 } from '../src/preview';
 
 const OLD_DOMAIN = process.env.PREVIEW_DOMAIN;
+const OLD_SCHEME = process.env.PREVIEW_SCHEME;
+const OLD_PORT = process.env.PREVIEW_PORT;
 beforeEach(() => {
   process.env.PREVIEW_DOMAIN = 'preview.example.dev';
+  process.env.PREVIEW_SCHEME = 'http';
+  process.env.PREVIEW_PORT = '4001';
 });
 afterEach(() => {
   process.env.PREVIEW_DOMAIN = OLD_DOMAIN;
+  process.env.PREVIEW_SCHEME = OLD_SCHEME;
+  process.env.PREVIEW_PORT = OLD_PORT;
   removePreview('p1');
   setPreviewIpResolver(async (t) => t.ip); // restore the default resolver
 });
@@ -39,20 +44,17 @@ describe('slugForHost', () => {
   });
 });
 
-describe('registry + caddyAsk', () => {
-  it('register/get/remove drives the on-demand-TLS verdict', () => {
-    expect(caddyAsk('p1.preview.example.dev')).toBe(false); // not live → no cert
+describe('registry + previewUrlFor', () => {
+  it('register/get/remove tracks live previews', () => {
+    expect(getPreview('p1')).toBeUndefined();
     registerPreview('p1', { ip: '172.20.0.5', port: 5173, containerId: 'c1' });
     expect(getPreview('p1')).toEqual({ ip: '172.20.0.5', port: 5173, containerId: 'c1' });
-    expect(caddyAsk('p1.preview.example.dev')).toBe(true);
-    expect(previewUrlFor('p1')).toBe('https://p1.preview.example.dev');
     removePreview('p1');
-    expect(caddyAsk('p1.preview.example.dev')).toBe(false); // revoked
+    expect(getPreview('p1')).toBeUndefined();
   });
 
-  it('ask is false for a non-preview host even with a live registry', () => {
-    registerPreview('p1', { ip: '172.20.0.5', port: 5173, containerId: 'c1' });
-    expect(caddyAsk('api.praxis.example.dev')).toBe(false);
+  it('builds a scheme + port-qualified public URL', () => {
+    expect(previewUrlFor('p1')).toBe('http://p1.preview.example.dev:4001');
   });
 });
 

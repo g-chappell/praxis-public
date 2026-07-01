@@ -6,7 +6,7 @@
 import { Hono } from 'hono';
 
 import { httpLogger } from './logger';
-import { caddyAsk, proxyToSandbox, resolvePreviewTarget, slugForHost } from './preview';
+import { proxyToSandbox, resolvePreviewTarget, slugForHost } from './preview';
 import { adminStatsRoute } from './routes/admin-stats';
 import { gitRoute } from './routes/git';
 import { healthRoute } from './routes/health';
@@ -19,12 +19,11 @@ export const app = new Hono();
 
 app.use('*', httpLogger);
 
-// Preview routing (STORY-13): Caddy proxies all `*.preview.<domain>` here. When
-// the Host is a preview host, reverse-proxy to the mapped sandbox (or 404 if the
-// slug isn't live). All other Hosts (api.*, the on_demand ask) fall through.
+// Preview routing: requests arrive on the orchestrator port with a
+// `<slug>.preview.localhost` Host. When the Host is a preview host,
+// reverse-proxy to the mapped sandbox (or 404 if the slug isn't live). All
+// other Hosts (the API) fall through.
 app.use('*', async (c, next) => {
-  // Caddy preserves the original Host header on reverse_proxy; fall back to the
-  // URL host (covers tests that drive app.fetch directly).
   const host = c.req.header('host') ?? new URL(c.req.url).host;
   const slug = slugForHost(host);
   if (slug === null) return next();
@@ -35,9 +34,6 @@ app.use('*', async (c, next) => {
   if (!target) return c.text('no such preview', 404);
   return proxyToSandbox(c.req.raw, target);
 });
-
-// Caddy on_demand_tls ask — issue a cert only for a live preview subdomain.
-app.get('/caddy/ask', (c) => (caddyAsk(c.req.query('domain')) ? c.text('ok') : c.text('no', 404)));
 
 app.get('/', (c) => c.text(`praxis-orchestrator ${VERSION}`));
 app.route('/health', healthRoute);

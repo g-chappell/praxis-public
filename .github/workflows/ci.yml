@@ -6,8 +6,8 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel in-progress runs when a new commit lands on the same ref
-# (amend-pushes, force-pushes, branch updates) so we don't burn CI minutes.
+# Cancel in-progress runs when a new commit lands on the same ref so we don't
+# burn CI minutes on superseded commits.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -17,17 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate roadmap
-        run: node roadmap/validate.mjs
-
-      - name: Check rendered ROADMAP.md is up to date
-        run: |
-          node roadmap/render.mjs
-          git diff --exit-code -- ROADMAP.md || {
-            echo "::error::ROADMAP.md is out of date. Run 'node roadmap/render.mjs' and commit." >&2
-            exit 1
-          }
 
       - uses: pnpm/action-setup@v3
         with:
@@ -53,59 +42,18 @@ jobs:
       - name: Build
         run: pnpm -r --if-present build
 
-      # Deploy-readiness: every workspace dep of a deployable must be COPY'd
-      # into its Dockerfile. CI builds in the full monorepo so it can't see
-      # this; the deployed image would crash at runtime (STORY-07 hit it twice).
-      - name: Deploy readiness (Dockerfile workspace deps)
-        run: node scripts/deploy-readiness-check.mjs --scripted-only
-
-      # @praxis/db codegen drift check.
-      # The script reads packages/db/src/schema.ts at the TS level and emits
-      # row-type aliases into packages/db/src/generated/types.ts. CI fails if
-      # the committed file doesn't match — that means a contributor forgot to
-      # run `pnpm db:codegen` after editing schema.ts.
+      # @praxis/db codegen drift check: the committed row-type aliases in
+      # packages/db/src/generated/types.ts must match schema.ts.
       - name: DB codegen drift check
         run: |
           pnpm db:codegen
           git diff --exit-code -- packages/db/src/generated || {
-            echo "::error::packages/db/src/generated/types.ts is stale. Run 'pnpm db:codegen' locally and commit." >&2
+            echo "::error::packages/db/src/generated is stale. Run 'pnpm db:codegen' locally and commit." >&2
             exit 1
           }
 
-      # Validate the deploy artefacts. Caddy is not on the runner image by
-      # default; install it from the official apt repo (~10s). systemd-analyze
-      # ships with the runner.
-      - name: Install Caddy (for validation)
-        run: |
-          curl -fsSL 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-          curl -fsSL 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
-          sudo apt-get update -qq
-          sudo apt-get install -y caddy >/dev/null
-
-      - name: Validate Caddyfile
-        run: caddy validate --config infrastructure/caddy/Caddyfile --adapter caddyfile
-
-      - name: Check Caddyfile is formatted
-        run: |
-          caddy fmt infrastructure/caddy/Caddyfile > /tmp/caddyfile.formatted
-          if ! diff -u infrastructure/caddy/Caddyfile /tmp/caddyfile.formatted; then
-            echo "::error::Caddyfile is not formatted. Run 'caddy fmt --overwrite infrastructure/caddy/Caddyfile' locally." >&2
-            exit 1
-          fi
-
-      - name: Validate systemd units
-        run: |
-          systemd-analyze verify \
-            infrastructure/deploy/praxis-web.service \
-            infrastructure/deploy/praxis-postgres.service \
-            infrastructure/deploy/praxis-postgres-backup.service \
-            infrastructure/deploy/praxis-postgres-backup.timer \
-            infrastructure/deploy/praxis-orchestrator.service
-
-  # Separate Playwright job. NOT marked as a required check today —
-  # branch protection only requires `ci`. Promote to required once
-  # the suite proves stable. The job needs a live Postgres + apps/web
-  # built; the Playwright config webServer block boots `next dev`.
+  # Playwright smoke tests. Not a required check. Needs a live Postgres; the
+  # Playwright config's webServer block boots the web app.
   e2e:
     runs-on: ubuntu-latest
     services:
@@ -124,9 +72,6 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgres://praxis:praxis@localhost:5432/praxis
-      BETTER_AUTH_SECRET: e2e-secret-do-not-use-in-prod
-      BETTER_AUTH_URL: http://localhost:3100
-      RESEND_API_KEY: ''
       PORT: '3100'
     steps:
       - uses: actions/checkout@v4
@@ -139,8 +84,8 @@ jobs:
           cache: 'pnpm'
       - name: Install
         run: pnpm install --frozen-lockfile
-      - name: Apply migrations
-        run: pnpm db:migrate
+      - name: Create schema + seed local user
+        run: pnpm db:push && pnpm db:seed
       - name: Install Playwright browsers
         run: pnpm --filter @praxis/web test:e2e:install
       - name: Run Playwright
@@ -153,16 +98,12 @@ jobs:
           path: apps/web/playwright-report/
           retention-days: 7
 
-  # Sandbox integration tests against a real Docker daemon (RUN_DOCKER_TESTS).
-  # GitHub-hosted ubuntu runners ship Docker, so we build the sandbox base
-  # image and run packages/sandbox's gated suite here. NOT a required check
-  # yet — promote in branch protection once it proves stable.
+  # Sandbox + ACP-host integration tests against a real Docker daemon.
   integration:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build sandbox base image
-        # Context = repo root so the bundled image-gen MCP server source is visible.
         run: docker build -t praxis-sandbox-base:latest -f infrastructure/docker/sandbox-base/Dockerfile .
       - name: Smoke-check the baked MCP server wrapper resolves on PATH
         run: docker run --rm praxis-sandbox-base:latest which praxis-mcp-image-gen
@@ -178,11 +119,5 @@ jobs:
       - name: Sandbox + ACP-host integration tests
         env:
           RUN_DOCKER_TESTS: '1'
-          # The live ACP round-trip (packages/acp-host) also needs a real key.
-          # Absent the secret it skips cleanly; determinism comes from the
-          # recorded-agent unit tests. Set ANTHROPIC_API_KEY in repo secrets to
-          # exercise the real agent here.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        # Run the Docker-heavy files one at a time — parallel workers contend
-        # for the daemon on the runner and make container ops flaky.
         run: pnpm exec vitest run packages/sandbox packages/acp-host --no-file-parallelism

@@ -1,11 +1,10 @@
-// Preview routing (STORY-13). Caddy can't be mutated dynamically (shared,
-// multi-tenant host service), so a single static wildcard block
-// `*.preview.<domain>` reverse-proxies ALL preview traffic to the orchestrator
-// (:4001), and this module does the dynamic part:
+// Preview routing. The orchestrator serves both the API and all preview traffic
+// on one port (:4001), distinguished by the request Host. Locally, previews use
+// `<slug>.preview.localhost` — browsers resolve any `*.localhost` name to
+// 127.0.0.1 with no DNS/hosts/proxy setup — so this module does the dynamic part:
 //   - a slug→sandbox registry (slug = projectId),
-//   - the Caddy on_demand_tls `ask` verdict (issue a cert only for live previews),
-//   - an HTTP reverse proxy to the sandbox's dev server.
-// See ADR-0015.
+//   - an HTTP reverse proxy to the sandbox's dev server,
+//   - the HMR WebSocket tunnel (see routes/preview-ws.ts).
 
 export interface PreviewTarget {
   /** Sandbox container IP on praxis-net (reachable from the orchestrator). */
@@ -71,16 +70,28 @@ export async function resolvePreviewTarget(
   return { ...target, ip };
 }
 
-/** The preview zone. Defaults to the prod domain so previews work without extra
- *  env plumbing on the VPS; dev/tests override via PREVIEW_DOMAIN. Must match the
- *  Caddy `*.preview.<domain>` block + the wildcard DNS record. */
+/** The preview host suffix. Defaults to `preview.localhost`, which every browser
+ *  resolves to 127.0.0.1 with no DNS/hosts setup; override via PREVIEW_DOMAIN. */
 export function previewDomain(): string {
-  return process.env.PREVIEW_DOMAIN ?? 'preview.praxis.blacksail.dev';
+  return process.env.PREVIEW_DOMAIN ?? 'preview.localhost';
 }
 
-/** Public preview URL for a slug. */
+/** URL scheme for public preview links. `http` locally; set PREVIEW_SCHEME=https
+ *  behind a TLS-terminating proxy. */
+function previewScheme(): string {
+  return process.env.PREVIEW_SCHEME ?? 'http';
+}
+
+/** Optional port appended to preview URLs. Locally the orchestrator serves
+ *  previews on its own port (default 4001); set PREVIEW_PORT='' to omit. */
+function previewPortSuffix(): string {
+  const port = process.env.PREVIEW_PORT ?? process.env.PORT ?? '4001';
+  return port ? `:${port}` : '';
+}
+
+/** Public preview URL for a slug, e.g. `http://<slug>.preview.localhost:4001`. */
 export function previewUrlFor(slug: string): string {
-  return `https://${slug}.${previewDomain()}`;
+  return `${previewScheme()}://${slug}.${previewDomain()}${previewPortSuffix()}`;
 }
 
 /** Extract the slug (single subdomain label) from a `<slug>.preview.<domain>`
@@ -95,14 +106,8 @@ export function slugForHost(host: string | null | undefined): string | null {
   return slug;
 }
 
-/** Caddy on_demand_tls ask verdict: true iff `domain` maps to a live preview. */
-export function caddyAsk(domain: string | null | undefined): boolean {
-  const slug = slugForHost(domain);
-  return slug !== null && registry.has(slug);
-}
-
 /** If this is a preview-host WebSocket upgrade, return the slug; else null
- *  (STORY-30). Vite's HMR client connects to `wss://<slug>.preview.<domain>` — we
+ *  (STORY-30). Vite's HMR client connects to `ws://<slug>.preview.<domain>` — we
  *  tunnel that upgrade to the sandbox dev server; plain HTTP previews still go
  *  through proxyToSandbox. Node-safe (no Bun) so it stays unit-testable. */
 export function previewWsSlug(

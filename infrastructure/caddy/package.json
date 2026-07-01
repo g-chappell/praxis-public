@@ -1,6 +1,0 @@
-{
-  "name": "@praxis/infra-caddy",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Caddy reverse-proxy config for the Praxis VPS. Installed under /etc/caddy/Caddyfile per docs/runbooks/deploy-web.md."
-}

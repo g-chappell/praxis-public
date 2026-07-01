@@ -1,7 +1,7 @@
-// Acceptance proof for STORY-13. Gated by RUN_DOCKER_TESTS=1. Runs a tiny HTTP
-// server inside a real sandbox, registers it, and drives the orchestrator's own
-// app.fetch with a preview Host — proving expose → URL serves content → revoke →
-// 404 without needing the live VPS Caddy.
+// Acceptance proof for preview routing. Gated by RUN_DOCKER_TESTS=1. Runs a tiny
+// HTTP server inside a real sandbox, registers it, and drives the orchestrator's
+// own app.fetch with a preview Host — proving expose → URL serves content →
+// revoke → 404.
 
 import { randomBytes } from 'node:crypto';
 
@@ -24,7 +24,6 @@ describeDocker('preview proxy (real sandbox)', () => {
   let server: ProcessHandle | undefined;
 
   const previewReq = () => new Request(`http://${projectId}.${DOMAIN}/`);
-  const askReq = () => new Request(`http://orch/caddy/ask?domain=${projectId}.${DOMAIN}`);
 
   beforeAll(async () => {
     process.env.PREVIEW_DOMAIN = DOMAIN;
@@ -54,7 +53,7 @@ describeDocker('preview proxy (real sandbox)', () => {
   }, T);
 
   it(
-    'serves the sandbox via the preview Host + ask, then 404s after revoke',
+    'serves the sandbox via the preview Host, then 404s after revoke',
     async () => {
       // Poll the proxy until the python server is listening.
       let body = '';
@@ -68,12 +67,9 @@ describeDocker('preview proxy (real sandbox)', () => {
       }
       expect(body).toContain('hello from sandbox');
 
-      expect((await app.fetch(askReq())).status).toBe(200);
-
-      // Revoke (what session-end does) → both the proxy and the TLS gate 404.
+      // Revoke (what session-end does) → the proxy 404s.
       removePreview(projectId);
       expect((await app.fetch(previewReq())).status).toBe(404);
-      expect((await app.fetch(askReq())).status).toBe(404);
     },
     T,
   );

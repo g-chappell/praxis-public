@@ -1,0 +1,108 @@
+# Praxis (local, single-user). Runs the whole stack on your machine:
+#
+#   Postgres + orchestrator (Bun) + web (Next.js), plus per-project sandbox
+#   containers the orchestrator spawns via the Docker socket.
+#
+# Quickstart (see README.md):
+#   cp .env.example .env            # add your ANTHROPIC_API_KEY
+#   docker compose --profile build build sandbox-base   # build the sandbox image once
+#   pnpm install && pnpm db:push && pnpm db:seed         # create tables + local user
+#   docker compose up web orchestrator                   # (db comes up as a dependency)
+#
+# Then open http://localhost:3000.
+
+name: praxis
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: praxis-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-praxis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-praxis}
+      POSTGRES_DB: ${POSTGRES_DB:-praxis}
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - praxis_pg_data:/var/lib/postgresql/data
+    networks:
+      - praxis-net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-praxis} -d ${POSTGRES_DB:-praxis}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    image: praxis-orchestrator:local
+    container_name: praxis-orchestrator
+    restart: unless-stopped
+    # Run as root so the container can talk to the mounted Docker socket
+    # regardless of the host's docker group id (varies across Linux/macOS).
+    user: root
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: '4001'
+      DATABASE_URL: postgres://${POSTGRES_USER:-praxis}:${POSTGRES_PASSWORD:-praxis}@db:5432/${POSTGRES_DB:-praxis}
+      # Sandboxes attach to this network; the orchestrator is on it too so it can
+      # reach each sandbox's dev server by container IP (portable across OSes).
+      PRAXIS_NETWORK: praxis-net
+      PRAXIS_TEMPLATES_DIR: /app/templates
+      PREVIEW_DOMAIN: preview.localhost
+      PREVIEW_SCHEME: http
+      PREVIEW_PORT: '4001'
+    ports:
+      # Serves both the API and preview traffic (<slug>.preview.localhost:4001).
+      - '4001:4001'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - praxis-net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: praxis-web:local
+    container_name: praxis-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATABASE_URL: postgres://${POSTGRES_USER:-praxis}:${POSTGRES_PASSWORD:-praxis}@db:5432/${POSTGRES_DB:-praxis}
+      # Server-side calls into the orchestrator (container-to-container).
+      ORCHESTRATOR_INTERNAL_URL: http://orchestrator:4001
+      # Browser-facing WebSocket URL (published port on the host).
+      ORCHESTRATOR_WS_URL: ws://localhost:4001/ws
+    ports:
+      - '3000:3000'
+    networks:
+      - praxis-net
+    depends_on:
+      - orchestrator
+
+  # Build-only: `docker compose --profile build build sandbox-base` produces the
+  # praxis-sandbox-base:latest image the orchestrator clones each project from.
+  # Not started by `docker compose up`.
+  sandbox-base:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/sandbox-base/Dockerfile
+    image: praxis-sandbox-base:latest
+    profiles: ['build']
+
+networks:
+  praxis-net:
+    name: praxis-net
+
+volumes:
+  praxis_pg_data:
