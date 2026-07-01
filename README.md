@@ -16,7 +16,10 @@ right that drives the agent. Prompt it, and it writes code, commits to git, and 
 preview hot-reloads — no local toolchain to install, since each project runs in its
 own Docker sandbox.
 
+<!-- Add a workspace screenshot: capture with apps/web/scripts/capture-workspace.mjs,
+     save to docs/images/workspace.png, then uncomment the line below.
 ![The workspace — file tree + editor, live preview, and a chat panel driving the agent](docs/images/workspace.png)
+-->
 
 ## How it works
 
