@@ -53,11 +53,16 @@ Run these from the repo root. The whole app runs in Docker; Node/pnpm are only
 needed for the one-time schema + seed in step 4.
 
 ```bash
-# 1. Clone the repo.
+# 1. Get the code.
+#    Fresh install — clone into a NEW, empty folder:
 git clone https://github.com/g-chappell/praxis-public.git
 cd praxis-public
+#    Already have it? Don't re-clone (git refuses a non-empty folder, and you'd
+#    lose your .env). Update in place instead:
+#      cd praxis-public && git pull
 
-# 2. Configure. Copy the template and set ANTHROPIC_API_KEY (the only required value).
+# 2. Configure (fresh install only — skip if you already have a .env).
+#    Copy the template and set ANTHROPIC_API_KEY (the only required value).
 cp .env.example .env
 $EDITOR .env          # paste your key into ANTHROPIC_API_KEY=
 
