@@ -1,0 +1,16 @@
+[Unit]
+Description=Praxis VPS disk hygiene (image prune + orphan sandbox reaper)
+Documentation=https://github.com/g-chappell/praxis/blob/main/docs/runbooks/deploy-orchestrator.md
+Requires=docker.service
+After=docker.service praxis-postgres.service
+
+[Service]
+Type=oneshot
+# Reclaims Docker disk left by platform-image rebuilds (dangling images, bounded
+# build cache, old sha-* tags) and reaps orphaned project sandboxes (containers +
+# volumes whose project no longer exists in the DB). Idempotent + DB-guarded; set
+# DRY_RUN=1 to preview. Path mirrors where the repo lives on the VPS (/opt/praxis).
+ExecStart=/opt/praxis/infrastructure/deploy/praxis-hygiene.sh
+
+[Install]
+WantedBy=multi-user.target

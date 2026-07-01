@@ -1,0 +1,58 @@
+[Unit]
+Description=Praxis orchestrator (Bun + Hono) container
+Documentation=https://github.com/g-chappell/praxis/blob/main/docs/runbooks/deploy-orchestrator.md
+After=docker.service network-online.target praxis-postgres.service
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+
+# Pull the latest image before each (re)start so `systemctl restart`
+# after a deploy picks up the new tag. Mirrors praxis-web.service.
+ExecStartPre=-/usr/bin/docker rm -f praxis-orchestrator
+ExecStartPre=/usr/bin/docker pull ghcr.io/g-chappell/praxis-orchestrator:latest
+
+# Host port :4001 (NOT :4000 — autodev-mcp dashboard already owns :4000
+# on this VPS; see ADR-0004). Container internal port stays :4001 via
+# the Dockerfile's PORT env.
+#
+# --network praxis-net puts the container on the same bridge as
+# praxis-db so DATABASE_URL can use `praxis-db` as the hostname.
+# --env-file passes /etc/praxis/praxis.env (DATABASE_URL,
+# BETTER_AUTH_*, RESEND_*, MINIO_*). See docs/runbooks/deploy-postgres.md
+# for the env-file format conventions.
+#
+# SECURITY: -v /var/run/docker.sock gives the orchestrator control of the host
+# Docker daemon so it can manage per-project sandbox containers and run the
+# idle sweep (STORY-07: DockerSandbox). This is root-equivalent host access —
+# the pragmatic POC choice; harden later (rootless Docker / socket proxy /
+# dedicated sandbox host) under its own ADR.
+#
+# --group-add 988 = the host's `docker` group gid, so the container's non-root
+# `bun` user can read the socket (mode srw-rw---- root:docker) without running
+# as root. HOST-SPECIFIC: confirm with `getent group docker` on a new host and
+# update this number (or the socket access will fail with a connect error).
+ExecStart=/usr/bin/docker run --rm --name praxis-orchestrator \
+  --network praxis-net \
+  --env-file /etc/praxis/praxis.env \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --group-add 988 \
+  -p 127.0.0.1:4001:4001 \
+  ghcr.io/g-chappell/praxis-orchestrator:latest
+
+# STORY-19 / ADR-0021: when sandboxes run on the internal praxis-sandbox-net
+# (PRAXIS_NETWORK), the orchestrator must also join it to reach their previews.
+# `docker run` joins only one network and the container is recreated each start,
+# so re-attach the second network here. No-op (exit 0) when the network doesn't
+# exist (egress not provisioned) or it's already attached — so this is safe on a
+# host that hasn't set up the egress allowlist yet.
+ExecStartPost=/bin/sh -c 'for i in 1 2 3 4 5; do /usr/bin/docker network connect praxis-sandbox-net praxis-orchestrator 2>/dev/null && exit 0; sleep 1; done; exit 0'
+
+ExecStop=/usr/bin/docker stop praxis-orchestrator
+
+[Install]
+WantedBy=multi-user.target

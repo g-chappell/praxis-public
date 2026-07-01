@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "budget_usd" numeric(12, 2) DEFAULT '10.00' NOT NULL;

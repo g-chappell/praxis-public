@@ -1,0 +1,10 @@
+{
+  "id": "react-threejs-scene",
+  "name": "React + Three.js",
+  "description": "A 3D scene starter — Vite + React + TypeScript + @react-three/fiber + drei. Ships a rotating cube you extend with the agent.",
+  "harness": "claude-code",
+  "tags": ["3d", "frontend", "react", "three.js"],
+  "preview_port": 5173,
+  "stack_summary": "Vite, React, TypeScript, three.js, @react-three/fiber, drei",
+  "mcp_servers": ["image-gen"]
+}

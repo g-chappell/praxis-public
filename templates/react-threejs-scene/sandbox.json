@@ -1,0 +1,7 @@
+{
+  "baseImage": "praxis-sandbox-base:latest",
+  "preview_port": 5173,
+  "setup": "npm install",
+  "dev": "npm run dev",
+  "env": {}
+}

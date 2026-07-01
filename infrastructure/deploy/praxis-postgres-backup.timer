@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily Praxis Postgres backup
+Documentation=https://github.com/g-chappell/praxis/blob/main/docs/runbooks/deploy-postgres.md
+
+[Timer]
+# Daily at 03:30 UTC (off-peak across the timezones the dev team works in).
+# Persistent=true catches up if the VPS was off when the timer was due.
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=praxis-postgres-backup.service
+
+[Install]
+WantedBy=timers.target

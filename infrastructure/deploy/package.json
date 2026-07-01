@@ -1,0 +1,6 @@
+{
+  "name": "@praxis/infra-deploy",
+  "version": "0.0.0",
+  "private": true,
+  "description": "systemd units, env templates, and supporting deploy artefacts for the Praxis VPS. See docs/runbooks/deploy-web.md."
+}

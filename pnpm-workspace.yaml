@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'services/*'
+  - 'packages/*'
+  - 'infrastructure/*'
+  - 'infrastructure/mcp-servers/*'
+# NB: templates/* are deliberately NOT workspace members. A template is seed
+# material copied into a sandbox where its deps install at runtime (npm install);
+# it must not be installed/built as part of the praxis monorepo. See ADR-0014.

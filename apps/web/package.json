@@ -1,0 +1,46 @@
+{
+  "name": "@praxis/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "sync-monaco": "node scripts/sync-monaco.mjs",
+    "predev": "node scripts/sync-monaco.mjs",
+    "dev": "next dev",
+    "prebuild": "node scripts/sync-monaco.mjs",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@praxis/crypto": "workspace:*",
+    "@praxis/db": "workspace:*",
+    "@praxis/keys": "workspace:*",
+    "@radix-ui/react-slot": "^1.1.0",
+    "better-auth": "^1.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.36.4",
+    "monaco-editor": "^0.55.1",
+    "next": "^14.2.18",
+    "next-themes": "^0.4.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-resizable-panels": "^4.11.2",
+    "resend": "^4.0.0",
+    "tailwind-merge": "^2.5.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "jsdom": "^29.1.1",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3"
+  }
+}

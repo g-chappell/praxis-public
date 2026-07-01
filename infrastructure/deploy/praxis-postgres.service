@@ -1,0 +1,35 @@
+[Unit]
+Description=Praxis Postgres 16 (production)
+Documentation=https://github.com/g-chappell/praxis/blob/main/docs/runbooks/deploy-postgres.md
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Pull-then-run shape matches praxis-web.service. `docker pull` on every
+# start keeps the image patch-current; Postgres 16-alpine is small so
+# the pull is fast and skipped when up-to-date.
+ExecStartPre=-/usr/bin/docker rm -f praxis-db
+ExecStartPre=/usr/bin/docker pull postgres:16-alpine
+
+# --network praxis-net puts the container on the shared Praxis bridge
+# so praxis-web can reach it by hostname `praxis-db` (Docker built-in
+# DNS). The -p 127.0.0.1:5432 host mapping stays for ops/debug from
+# the host (psql, pg_dump backups via the sibling backup.service).
+# Never expose Postgres to the public internet.
+ExecStart=/usr/bin/docker run --rm --name praxis-db \
+  --network praxis-net \
+  --env-file /etc/praxis/praxis-postgres.env \
+  -p 127.0.0.1:5432:5432 \
+  -v praxis_pg_data:/var/lib/postgresql/data \
+  postgres:16-alpine
+
+ExecStop=/usr/bin/docker stop praxis-db
+
+[Install]
+WantedBy=multi-user.target

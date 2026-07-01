@@ -1,0 +1,75 @@
+# Praxis — Caddy block for /etc/caddy/Caddyfile on the deploy VPS.
+#
+# This file documents the Praxis-owned block of the host's Caddyfile.
+# The host file is a composite: blocks for Colonize, Pirate-Battle, and
+# Dashboard live in their own repos and are mirrored alongside this
+# block at /etc/caddy/Caddyfile. See ADR-0004 for the multi-tenant
+# context.
+#
+# Caddy manages TLS for all hostnames via its built-in ACME client; the
+# global block (operator email, etc.) lives once at the top of the
+# host's /etc/caddy/Caddyfile, not in this file.
+#
+# GLOBAL BLOCK — the host file has exactly ONE global block at the top.
+# Operator: MERGE the `on_demand_tls` option below into that existing block
+# (don't paste a second `{ … }`). It gates per-preview-subdomain cert issuance
+# to live sandboxes only (STORY-13 / ADR-0015). It's included here so this file
+# validates standalone in CI.
+{
+	on_demand_tls {
+		ask http://127.0.0.1:4001/caddy/ask
+	}
+}
+
+praxis.blacksail.dev {
+	# Upstream: praxis-web container on host port :3002.
+	# (Colonize already uses :3000, Pirate-Battle uses :3001 — see the
+	# port-allocation note in ADR-0004.)
+	reverse_proxy 127.0.0.1:3002 {
+		# Probe the web container's health endpoint every 30s; Caddy
+		# stops sending traffic to an unhealthy upstream until it
+		# recovers.
+		health_uri /api/health
+		health_interval 30s
+		health_timeout 5s
+		health_status 200
+	}
+
+	encode gzip zstd
+}
+
+api.praxis.blacksail.dev {
+	# Upstream: praxis-orchestrator (Bun + Hono) on host port :4001.
+	# Caddy auto-handles WebSocket upgrades for reverse_proxy — no
+	# extra directive needed for /ws.
+	reverse_proxy 127.0.0.1:4001 {
+		health_uri /health
+		health_interval 30s
+		health_timeout 5s
+		health_status 200
+	}
+
+	encode gzip zstd
+}
+
+# Per-project preview URLs (STORY-13 / ADR-0015). All `*.preview.*` traffic goes
+# to the orchestrator, which holds the dynamic subdomain→sandbox mapping and
+# reverse-proxies to the right container (Caddy itself stays static — it's a
+# shared, multi-tenant host service we don't mutate at runtime).
+#
+# ⚠ Operator: this needs TWO things added to the host /etc/caddy/Caddyfile:
+#   1. The wildcard DNS record  *.preview.praxis.blacksail.dev  A  <VPS IP>.
+#   2. In the host's GLOBAL block (top of the file), the on-demand-TLS gate so
+#      Caddy only mints a cert for a *live* preview subdomain:
+#        {
+#          on_demand_tls {
+#            ask http://127.0.0.1:4001/caddy/ask
+#          }
+#        }
+*.preview.praxis.blacksail.dev {
+	tls {
+		on_demand
+	}
+	reverse_proxy 127.0.0.1:4001
+	encode gzip zstd
+}

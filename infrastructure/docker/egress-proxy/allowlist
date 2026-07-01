@@ -1,0 +1,23 @@
+# Sandbox outbound allowlist (ADR-0021 / STORY-19). One POSIX-extended regex per
+# line, matched case-insensitively against the request host. Anchored so a
+# pattern can't be a substring of an attacker-controlled host (e.g.
+# "api.anthropic.com.evil.test"). To extend: add a line and reload the proxy
+# (docker kill -s HUP praxis-egress) — see README.md.
+
+# Anthropic + OpenAI inference APIs.
+^api\.anthropic\.com$
+^api\.openai\.com$
+
+# npm registry.
+^registry\.npmjs\.org$
+
+# PyPI (index + package files).
+^pypi\.org$
+^files\.pythonhosted\.org$
+
+# GitHub read-only (clone/fetch over HTTPS, release/raw assets, REST API).
+^github\.com$
+^codeload\.github\.com$
+^objects\.githubusercontent\.com$
+^raw\.githubusercontent\.com$
+^api\.github\.com$

@@ -1,0 +1,17 @@
+[Unit]
+Description=Praxis Postgres daily pg_dump
+Documentation=https://github.com/g-chappell/praxis/blob/main/docs/runbooks/deploy-postgres.md
+Requires=praxis-postgres.service
+After=praxis-postgres.service
+
+[Service]
+Type=oneshot
+# Backups land in /var/backups/praxis (owned by root). 14-day retention.
+# The dump itself is gzipped to roughly 10% of raw size for the POC schema.
+EnvironmentFile=/etc/praxis/praxis-postgres.env
+ExecStartPre=/usr/bin/install -d -m 0750 /var/backups/praxis
+ExecStart=/bin/sh -c '/usr/bin/docker exec praxis-db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" | /usr/bin/gzip > /var/backups/praxis/praxis-$(date -u +%%Y-%%m-%%d).sql.gz'
+ExecStartPost=/usr/bin/find /var/backups/praxis -type f -mtime +14 -name 'praxis-*.sql.gz' -delete
+
+[Install]
+WantedBy=multi-user.target

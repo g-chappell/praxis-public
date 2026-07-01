@@ -1,0 +1,75 @@
+node_modules
+pnpm-lock.yaml
+
+# Build outputs
+dist
+build
+.next
+.turbo
+.vite
+coverage
+playwright-report
+test-results
+
+# Self-hosted Monaco assets copied from node_modules (vendored, not source)
+apps/web/public/monaco-vs
+
+# Drizzle-generated migration SQL + introspection output
+packages/db/migrations
+packages/db/src/generated
+
+# Generated / append-only repo artefacts
+ROADMAP.md
+AGENT-LOG.md
+REVIEW-LOG.md
+.claude/approvals/history.md
+
+# Per-machine state
+.claude/settings.local.json
+.claude/logs
+
+# Autodev-template-provided files keep their upstream style
+# (we re-use them as-is; reformatting risks breaking parsing of SKILL.md
+# layout or hook expectations).
+.claude/hooks
+.claude/skills
+roadmap
+memory-seeds
+systemd
+docker
+scripts/append-agent-log.sh
+scripts/check-cycle-running.sh
+scripts/ci-fix-recover.mjs
+scripts/ci-fix-recover.test.mjs
+scripts/deploy.sh
+scripts/finalize-task.sh
+scripts/healthcheck.sh
+scripts/mcp-heartbeat.sh
+scripts/migrate-story-ac.mjs
+scripts/new-branch.sh
+scripts/notify-cycle.sh
+scripts/regression-check.mjs
+scripts/roadmap-followup.mjs
+scripts/roadmap-update-task.mjs
+scripts/roadmap-update-task.test.mjs
+scripts/rollback.sh
+scripts/run-workspaces.mjs
+scripts/select-task.mjs
+scripts/select-task.test.mjs
+scripts/story-acceptance-check.mjs
+scripts/story-remaining.mjs
+scripts/update-story-feature-complete.mjs
+
+# Design handoff bundle — reference prototypes (HTML/JSX/CSS), not source we ship
+design_handoff_praxis_neobrutalist
+
+# Long-form prose we don't want reformatted
+docs
+LICENSE
+README.md
+CLAUDE.md
+CLAUDE.md.tmpl
+AGENTS.md
+ARCHITECTURE.md
+.mcp.json.tmpl
+.env.example

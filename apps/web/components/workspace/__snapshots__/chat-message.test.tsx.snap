@@ -1,0 +1,235 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ChatTranscript > renders each message kind with per-user attribution 1`] = `
+<DocumentFragment>
+  <ul
+    class="flex-1 space-y-3 overflow-y-auto"
+  >
+    <li
+      class="flex gap-2.5 text-sm"
+    >
+      <div
+        class="flex flex-col items-center gap-1 pt-0.5"
+      >
+        <span
+          class="font-mono text-[0.6rem] text-muted-foreground"
+        >
+          01
+        </span>
+        <span
+          class="inline-grid place-items-center border-2 font-mono font-bold uppercase border-foreground bg-foreground text-background size-6 text-[0.55rem]"
+          title="Graham Chappell"
+        >
+          GC
+        </span>
+      </div>
+      <div
+        class="min-w-0 flex-1"
+      >
+        <div
+          class="flex items-center gap-1.5"
+        >
+          <span
+            class="truncate font-semibold"
+          >
+            Graham Chappell
+          </span>
+        </div>
+        <p
+          class="whitespace-pre-wrap break-words"
+        >
+          build me a rotating cube
+        </p>
+      </div>
+    </li>
+    <li
+      class="flex gap-2.5 text-sm"
+    >
+      <div
+        class="flex flex-col items-center gap-1 pt-0.5"
+      >
+        <span
+          class="font-mono text-[0.6rem] text-muted-foreground"
+        >
+          02
+        </span>
+        <span
+          class="inline-grid place-items-center border-2 font-mono font-bold uppercase border-stamp bg-stamp text-destructive-foreground size-6 text-[0.55rem]"
+          title="Assistant"
+        >
+          AI
+        </span>
+      </div>
+      <div
+        class="min-w-0 flex-1"
+      >
+        <div
+          class="flex items-center gap-1.5"
+        >
+          <span
+            class="font-semibold"
+          >
+            Assistant
+          </span>
+          <span
+            class="truncate text-xs italic text-muted-foreground"
+          >
+            · for Graham Chappell
+          </span>
+        </div>
+        <p
+          class="whitespace-pre-wrap break-words"
+        >
+          Sure — creating the scene.
+        </p>
+      </div>
+    </li>
+    <li
+      class="flex gap-2.5 text-sm"
+    >
+      <div
+        class="flex flex-col items-center gap-1 pt-0.5"
+      >
+        <span
+          class="font-mono text-[0.6rem] text-muted-foreground"
+        >
+          03
+        </span>
+        <span
+          class="inline-grid place-items-center border-2 font-mono font-bold uppercase border-stamp bg-stamp text-destructive-foreground size-6 text-[0.55rem]"
+          title="Assistant"
+        >
+          AI
+        </span>
+      </div>
+      <div
+        class="min-w-0 flex-1"
+      >
+        <div
+          class="flex items-center gap-1.5"
+        >
+          <span
+            class="font-semibold"
+          >
+            Assistant
+          </span>
+          <span
+            class="truncate text-xs italic text-muted-foreground"
+          >
+            · for Graham Chappell
+          </span>
+        </div>
+        <p
+          class="text-muted-foreground"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🔧 
+          </span>
+          Ran 
+          <span
+            class="font-medium"
+          >
+            Write(src/scene.tsx)
+          </span>
+        </p>
+      </div>
+    </li>
+    <li
+      class="flex gap-2.5 text-sm"
+    >
+      <div
+        class="flex flex-col items-center gap-1 pt-0.5"
+      >
+        <span
+          class="font-mono text-[0.6rem] text-muted-foreground"
+        >
+          04
+        </span>
+        <span
+          class="inline-grid place-items-center border-2 font-mono font-bold uppercase border-stamp bg-stamp text-destructive-foreground size-6 text-[0.55rem]"
+          title="Assistant"
+        >
+          AI
+        </span>
+      </div>
+      <div
+        class="min-w-0 flex-1"
+      >
+        <div
+          class="flex items-center gap-1.5"
+        >
+          <span
+            class="font-semibold"
+          >
+            Assistant
+          </span>
+          <span
+            class="truncate text-xs italic text-muted-foreground"
+          >
+            · for Graham Chappell
+          </span>
+        </div>
+        <p
+          class="font-mono text-xs text-stamp"
+        >
+          <span
+            aria-hidden="true"
+          >
+            ✎ 
+          </span>
+          wrote 
+          <span
+            class="font-bold"
+          >
+            src/scene.tsx
+          </span>
+        </p>
+      </div>
+    </li>
+    <li
+      class="flex gap-2.5 text-sm"
+    >
+      <div
+        class="flex flex-col items-center gap-1 pt-0.5"
+      >
+        <span
+          class="font-mono text-[0.6rem] text-muted-foreground"
+        >
+          05
+        </span>
+        <span
+          class="inline-grid place-items-center border-2 font-mono font-bold uppercase border-stamp bg-stamp text-destructive-foreground size-6 text-[0.55rem]"
+          title="Assistant"
+        >
+          AI
+        </span>
+      </div>
+      <div
+        class="min-w-0 flex-1"
+      >
+        <div
+          class="flex items-center gap-1.5"
+        >
+          <span
+            class="font-semibold"
+          >
+            Assistant
+          </span>
+          <span
+            class="truncate text-xs italic text-muted-foreground"
+          >
+            · for Ada Lovelace
+          </span>
+        </div>
+        <p
+          class="text-destructive"
+        >
+          Tool failed: timeout
+        </p>
+      </div>
+    </li>
+  </ul>
+</DocumentFragment>
+`;

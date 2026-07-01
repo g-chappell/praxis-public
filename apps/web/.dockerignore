@@ -1,0 +1,13 @@
+# Local Dockerfile builds (e.g. `docker build apps/web/`) use this file.
+# The canonical build path is `docker build -f apps/web/Dockerfile .` from
+# the repo root, which uses the root .dockerignore instead.
+
+node_modules
+.next
+.turbo
+.vite
+*.tsbuildinfo
+coverage
+Dockerfile
+.dockerignore
+README.md

@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "control_mode" text DEFAULT 'serialised' NOT NULL;

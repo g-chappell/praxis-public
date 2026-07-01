@@ -1,0 +1,45 @@
+# Build context = repo root. Exclude anything that doesn't need to ship to
+# the Docker daemon's build kit (each MB increases build-time + memory).
+
+**/node_modules
+**/.next
+**/.turbo
+**/.vite
+**/dist
+**/build
+**/coverage
+**/playwright-report
+**/test-results
+**/*.tsbuildinfo
+
+.git
+.github
+.claude
+.vscode
+.idea
+
+# Secrets and per-machine state
+.env
+.env.*
+**/.env
+**/.env.*
+secrets/
+
+# Repo docs / metadata not needed inside the image
+docs
+memory-seeds
+systemd
+scripts
+roadmap
+docker
+README.md
+AGENTS.md
+ARCHITECTURE.md
+CLAUDE.md
+CLAUDE.md.tmpl
+AGENT-LOG.md
+REVIEW-LOG.md
+ROADMAP.md
+LICENSE
+.mcp.json
+.mcp.json.tmpl

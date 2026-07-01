@@ -1,0 +1,27 @@
+{
+  "name": "@praxis/orchestrator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch run src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "build": "echo 'bun runs ts natively; no build step'"
+  },
+  "dependencies": {
+    "@praxis/acp-host": "workspace:*",
+    "@praxis/db": "workspace:*",
+    "@praxis/sandbox": "workspace:*",
+    "drizzle-orm": "^0.36.4",
+    "hono": "4.6.14",
+    "pino": "^9.5.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14",
+    "pino-pretty": "^11.3.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}

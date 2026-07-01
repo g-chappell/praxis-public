@@ -1,0 +1,146 @@
+# CLAUDE.md — {{project_name}}
+
+> Three tiers of rules live here, clearly separated. `autonomous-review` only
+> proposes additions to Tier 2 (project conventions) and Tier 3 (tech-coupled).
+> Tier 1 (universal rules) is frozen — do not edit.
+
+## Project overview
+
+{{one_paragraph_pitch}}
+
+## Tech stack
+
+- **Language:** {{language}}
+- **Framework:** {{framework}}
+- **Runtime:** {{runtime}}
+- **Database:** {{database}}
+- **Test framework:** {{test_framework}}
+- **CI:** GitHub Actions
+- **Deploy:** {{deploy_method}} (target: {{deploy_target}})
+
+## Key commands
+
+```bash
+{{dev_cmd}}         # start dev server(s)
+{{test_cmd}}        # run tests
+{{typecheck_cmd}}   # type checking
+{{lint_cmd}}        # lint
+{{build_cmd}}       # production build
+```
+
+## Workspace structure
+
+{{workspaces_block}}
+
+---
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Tier 1 — UNIVERSAL RULES. Frozen. autonomous-review will never modify. -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+## Universal rules
+
+- **Implement to the Story, not the literal Task body.** Each task you pick is one slice of a Story. Read the Story's `acceptance_criteria`, `user_flow`, and `out_of_scope` from `roadmap/roadmap.yml` BEFORE writing any code (the autonomous cycle's Step 5 picker emits the parent `storyId`; Step 7 prose tells you to load it). Your work must move the Story toward "all AC satisfied" — never produce stubs, placeholders, or mock data that would fail an AC if exercised end-to-end. Adding work strictly outside the Story's scope is still forbidden — refine via `/roadmap-add` first.
+- **No stubs, no placeholders. Ever.** If during implementation you discover the current task can't be completed without producing a stub/placeholder, **do not ship the stub**. Two paths:
+  1. Auto-add follow-up tasks via `node scripts/roadmap-followup.mjs <TASK-ID> --reason "<why>" --add-tasks "<title>;<title>"` and continue the current task only if its own `task_acceptance` can be met WITHOUT the stub. The new follow-ups land in the same PR under the same Story; `select-task.mjs` picks them first in the next cycle.
+  2. Mark the task `status: blocked` with a clear `blocked_reason` and stop the cycle if the gap is ambiguous (design decision needed) or the current task itself can't satisfy its `task_acceptance` without the stub.
+
+  A "stub" is any of:
+  - A function that returns a hardcoded placeholder string (`"Coming soon"`, `"TODO"`, `"lorem ipsum"`, `"TBD"`)
+  - A UI element rendered with mock/fake data when the real source exists
+  - A `TODO`/`FIXME`/`XXX` comment without a `(TASK-NNN)` reference to a roadmap task that resolves it
+  - An exported symbol that throws `"not implemented"` or returns `null`/`undefined` while the caller's contract requires a value
+  - A route, button, or menu item that renders nothing or no-ops on click
+
+  The `stub-scan.mjs` PostToolUse hook catches the obvious cases at edit time (fail-fast). The Step 8.5 acceptance check (`scripts/story-acceptance-check.mjs`) re-scans the full branch diff and runs an LLM judgment against the Story's AC before the PR opens — both layers run.
+- Edit one file at a time. Run typecheck + targeted tests after each edit before moving to the next.
+- Read the full file/component before modifying it. Verify all sibling elements, handlers, and conditional branches survive the edit.
+- Never skip tests after a change — even a "trivial" one. UI changes especially need explicit verification.
+- If you notice unrelated brokenness, flag it; do not fix in the same PR.
+- Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
+- Default to writing no comments. Only add when the **why** is non-obvious.
+- Never introduce security vulnerabilities (command injection, XSS, SQL injection, OWASP top 10). Fix immediately if you notice.
+- Do not take destructive git actions (force-push to main, hard-reset, amend published commits) without explicit user approval.
+- Never commit secrets (.env, credentials). Warn if a user asks to.
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Tier 2 — PROJECT CONVENTIONS. Edit freely. autonomous-review may append. -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+## Project conventions
+
+{{project_conventions_placeholder}}
+
+## Scaffolding hygiene
+
+- **Gitignore new tooling artefacts in the same PR that introduces the tool.**
+  When scaffolding a new dependency, audit what the tool writes to disk on
+  first use and add those paths to `.gitignore` *before* opening the PR.
+  Common leaks by stack:
+  - **TypeScript / tsc -b:** `*.tsbuildinfo`
+  - **Node frameworks:** `.next/`, `.turbo/`, `.nuxt/`, `.svelte-kit/`, `.vite/`
+  - **Bundlers / packers:** `dist/`, `build/`, `out/`
+  - **Mobile (Capacitor / RN):** `ios/App/App/public/`, `ios/Pods/`,
+    `ios/build/`, `android/build/`, `android/.gradle/`, `android/app/build/`,
+    `DerivedData/`, `capacitor.config.json` (copies generated by `cap sync`)
+  - **Python:** `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`,
+    `.ruff_cache/`, `*.egg-info/`
+  - **Rust:** `target/`
+  - **Java / JVM:** `.gradle/`, `build/`, `out/`, `*.class`
+  - **Go:** test binaries (`*.test`), `coverage.out`
+  - **Editors:** `.idea/`, `.vscode/` (unless intentionally shared),
+    `.DS_Store`, `Thumbs.db`
+  Avoids per-task follow-up commits cleaning up leaked artefacts, which
+  was a recurring noise source on early tasks.
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Tier 3 — TECH-COUPLED RULES. Evolves with the stack. -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+## Testing patterns
+
+{{testing_patterns_placeholder}}
+
+## Architecture notes
+
+{{architecture_notes_placeholder}}
+
+<!--
+When either section above grows past ~10 multi-paragraph bullets, split
+subsystem-specific rules into a **nested CLAUDE.md** placed under the
+subsystem's directory (e.g. `src/api/CLAUDE.md`, `packages/core/CLAUDE.md`,
+`apps/web/src/game/CLAUDE.md`). Claude Code loads nested CLAUDE.md files
+on demand when a file in or below that directory is read (load_reason
+`nested_traversal`), so the root `CLAUDE.md` stays thin and subsystem
+content only enters context when relevant.
+
+Why nested CLAUDE.md and not `.claude/rules/` or `docs/notes/` with
+`@-imports`:
+- `@-imports` inside `.claude/rules/*.md` do NOT resolve — the import
+  line is delivered as literal text, the referenced file never loads.
+  Confirmed on Colonize 2026-04-24 via `InstructionsLoaded` telemetry.
+- `.claude/` paths are rejected by the Claude Code CLI's Edit tool
+  under `--dangerously-skip-permissions`, so the autonomous cycle
+  cannot refine anything stored there.
+- Nested CLAUDE.md avoids both — loads automatically, lives outside
+  `.claude/`, editable by the cycle.
+
+See the Colonize project for a working example of this layout.
+-->
+
+
+---
+
+## Autonomous workflow
+
+This project uses an autonomous development agent. Key facts:
+
+- Tasks live in `roadmap/roadmap.yml`. Render with `node roadmap/render.mjs`.
+- Branches follow `{{branch_prefix}}<TASK-ID>-<slug>`.
+- Roadmap status changes travel through the PR (branch-as-payload) — never committed directly to main.
+- Every 5 consecutive successful tasks, the agent opens a self-improvement PR with auto-merge enabled. The PR is the audit trail; revert a bad refinement with `gh pr revert` (or `/autonomous-approve`, now a guided revert helper).
+- CI required checks: `ci` (typecheck + lint + test + build). Optional: `e2e`.
+- Auto-merge enabled on main; branch protection requires `ci`.
+
+See `docs/RUNBOOK.md` for troubleshooting and `docs/ARCHITECTURE.md` for deeper
+context on why the workflow is shaped this way.
