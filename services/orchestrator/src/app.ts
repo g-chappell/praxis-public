@@ -7,7 +7,6 @@ import { Hono } from 'hono';
 
 import { httpLogger } from './logger';
 import { proxyToSandbox, resolvePreviewTarget, slugForHost } from './preview';
-import { adminStatsRoute } from './routes/admin-stats';
 import { gitRoute } from './routes/git';
 import { healthRoute } from './routes/health';
 import { mcpRoute } from './routes/mcp';
@@ -37,7 +36,6 @@ app.use('*', async (c, next) => {
 
 app.get('/', (c) => c.text(`praxis-orchestrator ${VERSION}`));
 app.route('/health', healthRoute);
-app.route('/admin', adminStatsRoute);
 app.route('/sessions', sessionsRoute);
 app.route('/projects', projectsRoute);
 app.route('/projects', gitRoute);

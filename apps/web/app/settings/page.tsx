@@ -19,16 +19,16 @@ export default async function SettingsPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              This is a local, single-user install. Projects and history belong to you
-              (<span className="font-medium">{user.email}</span>).
+              This is a local, single-user install. Projects and history belong to you (
+              <span className="font-medium">{user.email}</span>).
             </p>
           </div>
 
           <div className="rounded-md border-2 p-4 text-sm text-muted-foreground">
             <p>
-              The coding agent runs on your own <code>ANTHROPIC_API_KEY</code> from the
-              environment. Set it in <code>.env</code> — it is never stored in the database or
-              sent anywhere but Anthropic.
+              The coding agent runs on your own <code>ANTHROPIC_API_KEY</code> from the environment.
+              Set it in <code>.env</code> — it is never stored in the database or sent anywhere but
+              Anthropic.
             </p>
           </div>
         </div>

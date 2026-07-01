@@ -7,7 +7,12 @@ const returning = vi.fn();
 const isTemplateId = vi.fn();
 
 vi.mock('@/lib/current-user', () => ({
-  getCurrentUser: async () => ({ id: 'local-user', email: 'you@localhost', name: 'You', image: null }),
+  getCurrentUser: async () => ({
+    id: 'local-user',
+    email: 'you@localhost',
+    name: 'You',
+    image: null,
+  }),
 }));
 vi.mock('@/lib/projects', () => ({
   parseProjectStatus: () => 'active',

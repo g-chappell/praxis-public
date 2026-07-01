@@ -51,7 +51,12 @@ export function CodeEditor() {
         <span className="truncate font-mono text-xs text-muted-foreground">{selectedPath}</span>
         <div className="flex items-center gap-2">
           {error && <span className="text-xs text-destructive">{error}</span>}
-          <Button size="sm" variant="outline" disabled={loading || saving} onClick={() => save(draft)}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={loading || saving}
+            onClick={() => save(draft)}
+          >
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>

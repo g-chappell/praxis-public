@@ -7,7 +7,6 @@
 
 import { ClaudeAcpHost, type AcpHost, type AgentSession } from '@praxis/acp-host';
 
-import type { ControlMode, QueuedPrompt } from './control';
 import {
   DockerSandbox,
   MinioObjectStore,
@@ -52,70 +51,36 @@ export function getAcpHost(): ClaudeAcpHost {
 }
 
 // ─── session rooms ────────────────────────────────────────────────────
-/** A user connected to a room (STORY-11). One per live socket; the same user in
- *  two tabs is two members. `filePath` is the file they currently have open (for
- *  presence "viewing" + cursor scoping), undefined until they open one. */
-export interface RoomMember {
-  connId: string;
-  userId: string;
-  userName: string;
-  userImage: string | null;
-  filePath?: string;
-}
-
 export interface SessionRoom {
   sessionId: string;
   projectId: string;
   handle: SandboxHandle;
-  // The decrypted platform API key for this session's agent. The web app (Node)
-  // decrypts it via @praxis/keys and hands it over the internal POST /sessions
-  // call — the orchestrator (Bun) deliberately does NOT load libsodium, which
-  // doesn't run under Bun. Held in memory only; never logged.
+  // The operator's ANTHROPIC_API_KEY for this session's agent — read from the
+  // environment by the web app and handed over the internal POST /sessions call
+  // (the Bun orchestrator gets it ready-to-use). Held in memory only; never logged.
   apiKey: string;
-  // The decrypted platform OpenAI key for this session, when one is configured
-  // (STORY-38). Delivered the same way as apiKey (web decrypts, hands it over the
-  // internal POST /sessions call). Held in memory only; never logged. Consumed by
-  // the image-gen MCP wiring (STORY-15/TASK-044); undefined when no OpenAI key is
-  // set — image generation is simply unavailable.
+  // The operator's OPENAI_API_KEY, when set — delivered the same way. Consumed by
+  // the image-gen MCP wiring; undefined when unset (image generation unavailable).
   openaiKey?: string;
   // The project's preview URL at room creation (null if registration failed),
-  // returned to every user who joins so re-joiners share the creator's preview
-  // without re-registering (STORY-32).
+  // returned to a re-joiner so a page refresh shares the same preview.
   previewUrl: string | null;
-  // The single persistent agent shared by everyone in the room (ADR-0016/STORY-33).
-  // Opened lazily on the first prompt, reused across turns and users, re-opened if
-  // it dies, and closed on teardown. Undefined until the first prompt.
+  // The project's single persistent agent (ADR-0016). Opened lazily on the first
+  // prompt, reused across turns, re-opened if it dies, closed on teardown.
   agent?: AgentSession;
-  // The ACP session id to resume across teardowns (ADR-0017/STORY-36). Seeded from
+  // The ACP session id to resume across teardowns (ADR-0017). Seeded from
   // projects.agent_session_id at room creation; updated to the live id after each
   // open. Passed as resumeSessionId so a fresh agent loads the prior conversation.
   agentSessionId?: string;
+  // Live sockets for this session (one per open tab). Frames are sent to all.
   sockets: Set<ServerWebSocket<unknown>>;
-  // Live presence: connId → member identity (STORY-11/TASK-033). Mutated on WS
-  // open/close; broadcast to the room as `presence`.
-  members: Map<string, RoomMember>;
-  // Soft file locks (STORY-11/TASK-034): project-relative path → owning userId.
-  // First writer wins; released when the owner switches file or disconnects.
-  locks: Map<string, string>;
-  // Stops the per-room sandbox file watcher (started lazily when the first
-  // socket joins, STORY-10/TASK-031). Called on teardown so inotifywait in the
-  // container is killed. Undefined until the watcher starts.
+  // Stops the per-room sandbox file watcher (started lazily on join). Called on
+  // teardown so inotifywait in the container is killed. Undefined until it starts.
   unwatchFiles?: Unsubscribe;
   // Pending deferred-teardown timer (STORY-35): set when the last socket leaves,
   // cleared when a socket rejoins within the grace window. Lets a page refresh
   // reconnect to the same live room + agent instead of losing the session.
   teardownTimer?: ReturnType<typeof setTimeout>;
-  // Prompt-control state (STORY-34). `mode` + `ownerUserId` are seeded from the
-  // project at room creation; `controlHolder` (turn_based), `controlRequests`, and
-  // `queue` (serialised) are live, ephemeral session state. See control.ts.
-  mode: ControlMode;
-  ownerUserId: string | null;
-  controlHolder?: string;
-  controlRequests: Set<string>;
-  queue: QueuedPrompt[];
-  // True while the serialised-mode queue is being drained (one turn at a time);
-  // prevents concurrent drainers so prompts run strictly FIFO (STORY-34).
-  draining?: boolean;
   // Opaque capability token handed to the in-sandbox MCP server (STORY-15). The
   // server presents it to POST /internal/mcp/usage; the orchestrator maps it back
   // to this project to cap usage — so no DB creds ever enter the sandbox.
@@ -148,14 +113,6 @@ export function createRoom(
     openaiKey,
     previewUrl,
     sockets: new Set(),
-    members: new Map(),
-    locks: new Map(),
-    // Control defaults (STORY-34); createProjectRoom seeds mode + ownerUserId from
-    // the project. Default serialised so a room is always in a valid mode.
-    mode: 'serialised',
-    ownerUserId: null,
-    controlRequests: new Set(),
-    queue: [],
     mcpToken: crypto.randomUUID(),
     previewReady: false,
   };

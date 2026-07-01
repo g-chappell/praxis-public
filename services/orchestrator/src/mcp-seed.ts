@@ -10,7 +10,6 @@
 import type { Sandbox, SandboxHandle } from '@praxis/sandbox';
 
 import { logger } from './logger';
-import type { EnabledConnector } from './mcp-registry';
 
 type SeedSandbox = Pick<Sandbox, 'readFile' | 'writeFile'>;
 
@@ -106,47 +105,4 @@ export async function seedImageGenMcp(
 
   logger.info({ projectId: handle.projectId }, 'mcp.image_gen_wired');
   return true;
-}
-
-/** Wire the enabled registry connectors for this session (STORY-50/TASK-148,
- *  ADR-0020). For each connector: render its .mcp.json entry (baked wrapper),
- *  write its credential section in the cred file (the plaintext was decrypted
- *  web-side and passed in), and add its allowed_commands to the settings allow-
- *  list. Read-merges, so this coexists with image-gen. Returns the count wired. */
-export async function seedRegistryConnectors(
-  sandbox: SeedSandbox,
-  handle: SandboxHandle,
-  connectors: EnabledConnector[],
-  creds: Record<string, string>,
-  opts: { usageUrl: string; usageToken: string },
-): Promise<number> {
-  if (connectors.length === 0) return 0;
-
-  const servers: Record<string, unknown> = {};
-  const credPatch: Record<string, unknown> = {};
-  const allowTools: string[] = [];
-
-  for (const c of connectors) {
-    servers[c.name] = {
-      command: c.command,
-      args: c.args,
-      env: { PRAXIS_MCP_CONFIG: MCP_CRED_PATH, PRAXIS_WORKSPACE_ROOT: '/workspace' },
-    };
-    credPatch[c.name] = {
-      credential: creds[c.name] ?? null,
-      usageUrl: opts.usageUrl,
-      usageToken: opts.usageToken,
-    };
-    // null allowedCommands = allow the server's full toolset (no restriction).
-    if (c.allowedCommands) {
-      for (const cmd of c.allowedCommands) allowTools.push(`mcp__${c.name}__${cmd}`);
-    }
-  }
-
-  await mergeMcpServers(sandbox, handle, servers);
-  await mergeCredFile(sandbox, handle, credPatch);
-  await mergeSettings(sandbox, handle, allowTools);
-
-  logger.info({ projectId: handle.projectId, count: connectors.length }, 'mcp.registry_wired');
-  return connectors.length;
 }
