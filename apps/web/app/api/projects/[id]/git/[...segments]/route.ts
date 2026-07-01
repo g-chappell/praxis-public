@@ -1,13 +1,12 @@
 // Git data API proxy (STORY-16). The browser can't reach the orchestrator's
 // internal-secret-gated git endpoints directly, so the Git panel calls these
-// same-origin routes: we authenticate the user, verify project ownership, then
-// forward to the orchestrator with x-internal-secret and pass its response
-// through. Read ops (branch/log/status/diff) are GET; revert is POST.
+// same-origin routes: we verify project ownership, then forward to the
+// orchestrator with x-internal-secret and pass its response through. Read ops
+// (branch/log/status/diff) are GET; revert is POST.
 
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-import { getAuth } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/current-user';
 import { userOwnsProject } from '@/lib/projects';
 
 export const runtime = 'nodejs';
@@ -24,11 +23,8 @@ type AuthFailed = { ok: false; response: NextResponse };
 /** Auth + ownership + orchestrator config, shared by both verbs. Returns either
  *  an early response to return, or the resolved orchestrator base + secret. */
 async function authorize(projectId: string): Promise<Authorized | AuthFailed> {
-  const session = await getAuth().api.getSession({ headers: await headers() });
-  if (!session?.user) {
-    return { ok: false, response: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) };
-  }
-  if (!(await userOwnsProject(session.user.id, projectId))) {
+  const user = await getCurrentUser();
+  if (!(await userOwnsProject(user.id, projectId))) {
     return { ok: false, response: NextResponse.json({ error: 'forbidden' }, { status: 403 }) };
   }
   const orchestratorUrl = process.env.ORCHESTRATOR_INTERNAL_URL;

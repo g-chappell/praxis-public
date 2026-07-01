@@ -5,28 +5,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  BUDGET_MAX_USD,
   DESCRIPTION_MAX,
   NAME_MAX,
-  parseBudgetUsd,
   parseProjectPatch,
   parseProjectSort,
   parseProjectStatus,
 } from './projects';
-
-describe('parseBudgetUsd', () => {
-  it('normalizes a valid number/string to 2 decimals', () => {
-    expect(parseBudgetUsd(10)).toBe('10.00');
-    expect(parseBudgetUsd('25.5')).toBe('25.50');
-    expect(parseBudgetUsd(0)).toBe('0.00');
-  });
-  it('rejects negatives, NaN, and over-max', () => {
-    expect(parseBudgetUsd(-1)).toBeNull();
-    expect(parseBudgetUsd('abc')).toBeNull();
-    expect(parseBudgetUsd(BUDGET_MAX_USD + 1)).toBeNull();
-    expect(parseBudgetUsd(null)).toBeNull();
-  });
-});
 
 describe('parseProjectPatch', () => {
   it('accepts a valid name + description and forwards them untrimmed', () => {

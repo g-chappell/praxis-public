@@ -16,25 +16,18 @@ import { FileTree } from '@/components/workspace/file-tree';
 import { GitPanel } from '@/components/workspace/git-panel';
 import { FolderTab } from '@/components/ui/folder-tab';
 import { LearningPanel } from '@/components/workspace/learning-panel';
-import { ControlBar } from '@/components/workspace/control-bar';
-import { PresenceBar } from '@/components/workspace/presence-bar';
 import { PreviewPane } from '@/components/workspace/preview-pane';
-import { UsagePanel } from '@/components/workspace/usage-panel';
 import { cn } from '@/lib/utils';
 import { WorkspaceFilesProvider } from '@/components/workspace/workspace-files';
-import { WorkspaceControlProvider } from '@/components/workspace/workspace-control';
 import { WorkspaceLoadingOverlay } from '@/components/workspace/workspace-loading';
-import { WorkspacePresenceProvider } from '@/components/workspace/workspace-presence';
 import {
   WorkspaceSocketProvider,
   useWorkspaceSocket,
 } from '@/components/workspace/workspace-socket';
 
-// Three-panel workspace shell (STORY-10): file tree | editor | chat, hosted on a
-// single shared session socket. Pane sizes persist via `useDefaultLayout` so a
-// resize survives a page refresh (TASK-030 acceptance). The file tree and editor
-// are empty containers here — their data (sandbox watchFiles + Monaco) lands in
-// TASK-031; this task owns only the layout + resizing.
+// Three-panel workspace shell: file tree | editor | chat, hosted on a single
+// session socket. Pane sizes persist via `useDefaultLayout` so a resize survives
+// a page refresh.
 
 const PANEL_IDS = ['files', 'editor', 'chat'];
 
@@ -54,13 +47,9 @@ export function WorkspaceShell({
   return (
     <WorkspaceSocketProvider projectId={projectId}>
       <WorkspaceFilesProvider>
-        <WorkspacePresenceProvider>
-          <WorkspaceControlProvider>
-            <WorkspaceReadyGate>
-              <ResizablePanels projectId={projectId} currentUser={currentUser} />
-            </WorkspaceReadyGate>
-          </WorkspaceControlProvider>
-        </WorkspacePresenceProvider>
+        <WorkspaceReadyGate>
+          <ResizablePanels projectId={projectId} currentUser={currentUser} />
+        </WorkspaceReadyGate>
       </WorkspaceFilesProvider>
     </WorkspaceSocketProvider>
   );
@@ -68,7 +57,7 @@ export function WorkspaceShell({
 
 // Keep the workspace mounted (so the socket connects, the file list is requested,
 // and the readiness probe runs) but cover it with a loading overlay until the
-// session is fully ready — connected + files listed + dev server up (STORY-51).
+// session is fully ready — connected + files listed + dev server up.
 function WorkspaceReadyGate({ children }: { children: ReactNode }) {
   const { ready } = useWorkspaceSocket();
   return (
@@ -148,8 +137,6 @@ function FilesPane() {
   return (
     <>
       <PaneHeader>Files</PaneHeader>
-      <PresenceBar />
-      <ControlBar />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <FileTree />
       </div>
@@ -158,7 +145,7 @@ function FilesPane() {
 }
 
 function EditorPane({ projectId }: { projectId: string }) {
-  const [tab, setTab] = useState<'editor' | 'preview' | 'git' | 'usage'>('editor');
+  const [tab, setTab] = useState<'editor' | 'preview' | 'git'>('editor');
   return (
     <>
       <div className="flex items-end gap-1 border-b-2 px-2 pt-2">
@@ -171,13 +158,10 @@ function EditorPane({ projectId }: { projectId: string }) {
         <FolderTab active={tab === 'git'} onClick={() => setTab('git')}>
           Git
         </FolderTab>
-        <FolderTab active={tab === 'usage'} onClick={() => setTab('usage')}>
-          Usage
-        </FolderTab>
       </div>
       {/* Keep editor + preview mounted (hide the inactive one) so the preview's
-          running app isn't reloaded on every tab switch. The Git + Usage panels
-          mount on demand so they fetch fresh data each time they're opened. */}
+          running app isn't reloaded on every tab switch. The Git panel mounts on
+          demand so it fetches fresh data each time it's opened. */}
       <div className={cn('min-h-0 flex-1', tab !== 'editor' && 'hidden')}>
         <CodeEditor />
       </div>
@@ -187,11 +171,6 @@ function EditorPane({ projectId }: { projectId: string }) {
       {tab === 'git' && (
         <div className="relative min-h-0 flex-1">
           <GitPanel projectId={projectId} />
-        </div>
-      )}
-      {tab === 'usage' && (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <UsagePanel projectId={projectId} />
         </div>
       )}
     </>

@@ -15,11 +15,8 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
-    "@praxis/crypto": "workspace:*",
     "@praxis/db": "workspace:*",
-    "@praxis/keys": "workspace:*",
     "@radix-ui/react-slot": "^1.1.0",
-    "better-auth": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.36.4",
@@ -29,7 +26,6 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-resizable-panels": "^4.11.2",
-    "resend": "^4.0.0",
     "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {

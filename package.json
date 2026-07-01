@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Collaborative two-person workspace for building with AI coding agents",
+  "description": "Local, single-user workspace for building apps with an AI coding agent",
   "license": "MIT",
   "packageManager": "pnpm@9.15.5",
   "engines": {
@@ -17,8 +17,8 @@
     "format": "prettier --write . && eslint . --fix",
     "build": "pnpm -r --if-present build",
     "dev": "pnpm -r --parallel --if-present dev",
-    "db:generate": "pnpm --filter @praxis/db db:generate",
-    "db:migrate": "pnpm --filter @praxis/db db:migrate",
+    "db:push": "pnpm --filter @praxis/db db:push",
+    "db:seed": "pnpm --filter @praxis/db db:seed",
     "db:codegen": "pnpm --filter @praxis/db db:codegen"
   },
   "devDependencies": {
@@ -30,10 +30,5 @@
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.15.0",
     "vitest": "^2.1.5"
-  },
-  "pnpm": {
-    "overrides": {
-      "kysely": "^0.28.0"
-    }
   }
 }

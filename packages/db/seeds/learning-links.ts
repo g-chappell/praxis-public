@@ -95,18 +95,6 @@ export const LEARNING_LINKS: readonly SeedLink[] = [
     topic: 'Cookbook',
     source: 'Anthropic',
   },
-  {
-    title: 'Caddy — on-demand TLS',
-    url: 'https://caddyserver.com/docs/automatic-https#on-demand-tls',
-    topic: 'Caddy',
-    source: 'Caddy',
-  },
-  {
-    title: 'Better Auth — documentation',
-    url: 'https://www.better-auth.com/docs/introduction',
-    topic: 'Better Auth',
-    source: 'Better Auth',
-  },
 ];
 
 /** Insert any curated links not already present (matched by url). Idempotent:

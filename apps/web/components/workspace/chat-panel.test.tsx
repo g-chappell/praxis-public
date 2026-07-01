@@ -29,28 +29,6 @@ vi.mock('@/components/workspace/workspace-socket', () => ({
   }),
 }));
 
-// Default control state for the chat panel: serialised, anyone may prompt, no queue.
-vi.mock('@/components/workspace/workspace-control', () => ({
-  useWorkspaceControl: () => ({
-    mode: 'serialised',
-    ownerUserId: null,
-    controlHolder: null,
-    requests: [],
-    queue: [],
-    myUserId: null,
-    isOwner: false,
-    isHolder: false,
-    canPrompt: true,
-    setMode: () => {},
-    requestControl: () => {},
-    grantControl: () => {},
-    declineControl: () => {},
-    releaseControl: () => {},
-    passControl: () => {},
-    cancelQueued: () => {},
-  }),
-}));
-
 import { ChatPanel } from './chat-panel';
 
 afterEach(() => {
@@ -100,16 +78,6 @@ describe('ChatPanel shared-chat attribution (STORY-32)', () => {
 
     expect(screen.getByText(/finishing another turn/i)).toBeTruthy();
     // Input stays live so the user can retry.
-    const input = screen.getByPlaceholderText('Message the assistant…') as HTMLInputElement;
-    expect(input.disabled).toBe(false);
-  });
-
-  it('shows the over-budget notice on over_budget without disabling input (STORY-23)', () => {
-    render(<ChatPanel currentUser={{ name: 'Me', image: null }} />);
-    emit({ type: 'over_budget', usedUsd: 11, budgetUsd: 10 });
-
-    expect(screen.getByText(/over budget/i)).toBeTruthy();
-    expect(screen.getByText(/Usage tab/i)).toBeTruthy();
     const input = screen.getByPlaceholderText('Message the assistant…') as HTMLInputElement;
     expect(input.disabled).toBe(false);
   });

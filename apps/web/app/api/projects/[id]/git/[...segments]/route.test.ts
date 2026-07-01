@@ -1,14 +1,14 @@
-// Unit tests for the git proxy route (STORY-16/TASK-046). Mocks auth + ownership
-// + the orchestrator fetch to verify the auth gate, subpath whitelist, and
-// status/body passthrough — without a running orchestrator.
+// Unit tests for the git proxy route. Mocks ownership + the orchestrator fetch
+// to verify the ownership gate, subpath whitelist, and status/body passthrough —
+// without a running orchestrator.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const getSession = vi.fn();
 const userOwnsProject = vi.fn();
 
-vi.mock('next/headers', () => ({ headers: vi.fn(async () => new Headers()) }));
-vi.mock('@/lib/auth', () => ({ getAuth: () => ({ api: { getSession } }) }));
+vi.mock('@/lib/current-user', () => ({
+  getCurrentUser: async () => ({ id: 'u1', email: 'you@localhost', name: 'You', image: null }),
+}));
 vi.mock('@/lib/projects', () => ({ userOwnsProject: (...a: unknown[]) => userOwnsProject(...a) }));
 
 import { GET, POST } from './route';
@@ -23,7 +23,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.ORCHESTRATOR_INTERNAL_URL = 'http://orch:4001';
   process.env.ORCHESTRATOR_INTERNAL_SECRET = 'secret';
-  getSession.mockResolvedValue({ user: { id: 'u1' } });
   userOwnsProject.mockResolvedValue(true);
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -36,14 +35,7 @@ afterEach(() => {
 const params = (segments: string[]) => ({ params: { id: 'p1', segments } });
 const getReq = (qs = '') => new Request(`http://localhost/api/projects/p1/git/log${qs}`);
 
-describe('git proxy — auth gate', () => {
-  it('401 when unauthenticated', async () => {
-    getSession.mockResolvedValue(null);
-    const res = await GET(getReq(), params(['log']));
-    expect(res.status).toBe(401);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
+describe('git proxy — ownership gate', () => {
   it('403 when the user does not own the project', async () => {
     userOwnsProject.mockResolvedValue(false);
     const res = await GET(getReq(), params(['log']));

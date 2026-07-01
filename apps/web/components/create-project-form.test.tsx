@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
-// Create-project form (STORY-54/57). Teamless → create-or-join-a-team guidance
-// (never the form), and a POST that races to 409 needs_team falls back to it. A
-// user with teams picks which team the project belongs to via the selector.
+// Create-project form: pick a name + template, then POST /api/projects and
+// navigate to the new project.
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,58 +17,20 @@ afterEach(() => {
   push.mockReset();
 });
 
-describe('CreateProjectForm — teamless guidance', () => {
-  it('shows the create-or-join-a-team guidance (not the form) when the user has no team', () => {
-    const { getByText, getByTestId, queryByLabelText } = render(<CreateProjectForm teams={[]} />);
+describe('CreateProjectForm', () => {
+  it('opens the form and shows the name field + templates', () => {
+    const { getByText, getByPlaceholderText } = render(<CreateProjectForm />);
     fireEvent.click(getByText('New project'));
-
-    const guidance = getByTestId('needs-team-guidance');
-    expect(guidance).toBeTruthy();
-    expect(guidance.querySelector('a[href="/settings"]')).toBeTruthy();
-    // The project form never renders for a teamless user.
-    expect(queryByLabelText('Name')).toBeNull();
+    expect(getByPlaceholderText('Untitled project')).toBeTruthy();
   });
 
-  it('falls back to the guidance when the POST returns 409 needs_team', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ error: 'needs_team' }), { status: 409 }),
-    );
-
-    const { getByText, getByTestId, getByPlaceholderText } = render(
-      <CreateProjectForm teams={[{ id: 't1', name: 'Acme' }]} />,
-    );
-    fireEvent.click(getByText('New project'));
-    fireEvent.change(getByPlaceholderText('Untitled project'), { target: { value: 'My scene' } });
-    await act(async () => {
-      fireEvent.click(getByText('Create project'));
-    });
-
-    await waitFor(() => getByTestId('needs-team-guidance'));
-    expect(push).not.toHaveBeenCalled();
-  });
-});
-
-describe('CreateProjectForm — team selector', () => {
-  it('lists the teams (most-recent preselected) and POSTs the chosen teamId', async () => {
+  it('POSTs the name + template and navigates to the new project', async () => {
     const fetchMock = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(new Response(JSON.stringify({ id: 'p1' }), { status: 200 }));
 
-    const { getByText, getByTestId, getByPlaceholderText } = render(
-      <CreateProjectForm
-        teams={[
-          { id: 'team-b', name: 'Beta' },
-          { id: 'team-a', name: 'Alpha' },
-        ]}
-      />,
-    );
+    const { getByText, getByPlaceholderText } = render(<CreateProjectForm />);
     fireEvent.click(getByText('New project'));
-
-    const select = getByTestId('create-project-team-select') as HTMLSelectElement;
-    expect([...select.options].map((o) => o.textContent)).toEqual(['Beta', 'Alpha']);
-    expect(select.value).toBe('team-b'); // most-recent (first) preselected
-
-    fireEvent.change(select, { target: { value: 'team-a' } });
     fireEvent.change(getByPlaceholderText('Untitled project'), { target: { value: 'My scene' } });
     await act(async () => {
       fireEvent.click(getByText('Create project'));
@@ -78,7 +39,7 @@ describe('CreateProjectForm — team selector', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/projects',
       expect.objectContaining({
-        body: expect.stringContaining('"teamId":"team-a"'),
+        body: expect.stringContaining('"name":"My scene"'),
       }),
     );
     await waitFor(() => expect(push).toHaveBeenCalledWith('/projects/p1'));

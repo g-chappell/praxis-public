@@ -5,35 +5,14 @@ import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 import type * as schema from '../schema.js';
 
-export type AgentTurn = InferSelectModel<typeof schema.agentTurns>;
-export type NewAgentTurn = InferInsertModel<typeof schema.agentTurns>;
-
-export type AuditLog = InferSelectModel<typeof schema.auditLog>;
-export type NewAuditLog = InferInsertModel<typeof schema.auditLog>;
-
-export type AuthSession = InferSelectModel<typeof schema.authSession>;
-export type NewAuthSession = InferInsertModel<typeof schema.authSession>;
-
-export type EmailBlocklist = InferSelectModel<typeof schema.emailBlocklist>;
-export type NewEmailBlocklist = InferInsertModel<typeof schema.emailBlocklist>;
-
 export type Event = InferSelectModel<typeof schema.events>;
 export type NewEvent = InferInsertModel<typeof schema.events>;
 
 export type LearningLink = InferSelectModel<typeof schema.learningLinks>;
 export type NewLearningLink = InferInsertModel<typeof schema.learningLinks>;
 
-export type McpConnector = InferSelectModel<typeof schema.mcpConnectors>;
-export type NewMcpConnector = InferInsertModel<typeof schema.mcpConnectors>;
-
 export type McpUsage = InferSelectModel<typeof schema.mcpUsage>;
 export type NewMcpUsage = InferInsertModel<typeof schema.mcpUsage>;
-
-export type OauthToken = InferSelectModel<typeof schema.oauthTokens>;
-export type NewOauthToken = InferInsertModel<typeof schema.oauthTokens>;
-
-export type PlatformApiKey = InferSelectModel<typeof schema.platformApiKeys>;
-export type NewPlatformApiKey = InferInsertModel<typeof schema.platformApiKeys>;
 
 export type Project = InferSelectModel<typeof schema.projects>;
 export type NewProject = InferInsertModel<typeof schema.projects>;
@@ -41,23 +20,5 @@ export type NewProject = InferInsertModel<typeof schema.projects>;
 export type Session = InferSelectModel<typeof schema.sessions>;
 export type NewSession = InferInsertModel<typeof schema.sessions>;
 
-export type TeamInvite = InferSelectModel<typeof schema.teamInvites>;
-export type NewTeamInvite = InferInsertModel<typeof schema.teamInvites>;
-
-export type TeamMembership = InferSelectModel<typeof schema.teamMemberships>;
-export type NewTeamMembership = InferInsertModel<typeof schema.teamMemberships>;
-
-export type Team = InferSelectModel<typeof schema.teams>;
-export type NewTeam = InferInsertModel<typeof schema.teams>;
-
-export type TemplateMcpConnector = InferSelectModel<typeof schema.templateMcpConnectors>;
-export type NewTemplateMcpConnector = InferInsertModel<typeof schema.templateMcpConnectors>;
-
-export type UsageEvent = InferSelectModel<typeof schema.usageEvents>;
-export type NewUsageEvent = InferInsertModel<typeof schema.usageEvents>;
-
 export type User = InferSelectModel<typeof schema.users>;
 export type NewUser = InferInsertModel<typeof schema.users>;
-
-export type Verification = InferSelectModel<typeof schema.verification>;
-export type NewVerification = InferInsertModel<typeof schema.verification>;

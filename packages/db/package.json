@@ -12,11 +12,9 @@
     "./test": "./src/test/with-db.ts"
   },
   "scripts": {
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
     "db:codegen": "tsx scripts/codegen.ts",
-    "db:seed:admins": "tsx scripts/seed-admins.ts",
-    "db:seed:learning-links": "tsx scripts/seed-learning-links.ts",
+    "db:seed": "tsx scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },

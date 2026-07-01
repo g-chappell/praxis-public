@@ -1,10 +1,5 @@
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-
 import { AppNav } from '@/components/app-nav';
-import { TeamsPanel } from '@/components/team-card';
-import { getAuth } from '@/lib/auth';
-import { getTeamsForUser } from '@/lib/teams';
+import { getCurrentUser } from '@/lib/current-user';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -14,12 +9,7 @@ export const metadata = {
 };
 
 export default async function SettingsPage() {
-  const session = await getAuth().api.getSession({ headers: await headers() });
-  if (!session?.user) {
-    redirect('/signin');
-  }
-
-  const teams = await getTeamsForUser(session.user.id);
+  const user = await getCurrentUser();
 
   return (
     <>
@@ -29,11 +19,18 @@ export default async function SettingsPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Signed in as <span className="font-medium">{session.user.email}</span>.
+              This is a local, single-user install. Projects and history belong to you
+              (<span className="font-medium">{user.email}</span>).
             </p>
           </div>
 
-          <TeamsPanel teams={teams} />
+          <div className="rounded-md border-2 p-4 text-sm text-muted-foreground">
+            <p>
+              The coding agent runs on your own <code>ANTHROPIC_API_KEY</code> from the
+              environment. Set it in <code>.env</code> — it is never stored in the database or
+              sent anywhere but Anthropic.
+            </p>
+          </div>
         </div>
       </main>
     </>

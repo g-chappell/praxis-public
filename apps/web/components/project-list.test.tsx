@@ -18,8 +18,6 @@ function p(name: string, createdAt: string): ProjectSummary {
     description: null,
     createdAt: new Date(createdAt),
     archivedAt: null,
-    teamId: 'team-1',
-    teamName: 'Acme',
   };
 }
 

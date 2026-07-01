@@ -11,20 +11,14 @@ import {
   type ChatMessage,
   ChatTranscript,
 } from '@/components/workspace/chat-message';
-import { PromptQueue } from '@/components/workspace/prompt-queue';
-import { useWorkspaceControl } from '@/components/workspace/workspace-control';
 import { type ServerFrame, useWorkspaceSocket } from '@/components/workspace/workspace-socket';
 
-// Session chat (STORY-09 → STORY-10), reading the shared workspace socket. Renders
-// the agent's typed event kinds (text / tool_call / file_change / error) and the
-// user's prompts, each attributed to the prompting user (TASK-032). No interactive
-// tool permissions yet (auto-allowed).
+// Session chat, reading the workspace socket. Renders the agent's typed event
+// kinds (text / tool_call / file_change / error) and the user's prompts. No
+// interactive tool permissions yet (auto-allowed).
 export function ChatPanel({ currentUser }: { currentUser: ChatAuthor }) {
   const { status: socketStatus, start, close, send, subscribe } = useWorkspaceSocket();
   const router = useRouter();
-  // Prompt-control gating (STORY-34): in turn-based mode only the control holder
-  // may prompt; serialised mode lets anyone (their prompt queues).
-  const { canPrompt } = useWorkspaceControl();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [errored, setErrored] = useState(false);
@@ -140,16 +134,10 @@ export function ChatPanel({ currentUser }: { currentUser: ChatAuthor }) {
         );
       } else if (frame.type === 'agent_restarted') {
         // The agent process was re-opened after dying — files persist, but the
-        // earlier conversation context is gone (STORY-33).
+        // earlier conversation context is gone.
         streamingRef.current = false;
         setNotice(
           'The agent restarted — your files are intact, but earlier chat context was reset.',
-        );
-      } else if (frame.type === 'over_budget') {
-        // The project hit its budget cap (STORY-23) — the prompt wasn't run. The
-        // input stays live; raising the budget in the Usage tab resumes.
-        setNotice(
-          'This project is over budget — your message wasn’t sent. Raise the budget in the Usage tab to resume.',
         );
       } else if (frame.type === 'error' && frame.path === undefined) {
         // Only session-scoped errors (no `path`) touch the chat. File read/save
@@ -219,23 +207,16 @@ export function ChatPanel({ currentUser }: { currentUser: ChatAuthor }) {
         </p>
       )}
 
-      <PromptQueue />
-
       <form onSubmit={sendPrompt} className="flex items-center gap-2">
         <Monogram variant="ink" name={currentUser.name} />
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={
-            canPrompt ? 'Message the assistant…' : 'Another user has control of the assistant'
-          }
-          disabled={status !== 'connected' || !canPrompt}
+          placeholder="Message the assistant…"
+          disabled={status !== 'connected'}
           className="min-w-0 flex-1"
         />
-        <Button
-          type="submit"
-          disabled={status !== 'connected' || !canPrompt || input.trim().length === 0}
-        >
+        <Button type="submit" disabled={status !== 'connected' || input.trim().length === 0}>
           Send
         </Button>
       </form>

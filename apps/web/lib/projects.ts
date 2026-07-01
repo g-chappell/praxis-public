@@ -1,10 +1,9 @@
-// Project + team helpers (STORY-09). A project needs a team (FK notNull). Teams
-// are explicit (STORY-54): a user creates or joins one before they can build —
-// the create route refuses a teamless user (no auto-create). See lib/teams.ts.
+// Project helpers. A local install has one user; a project is owned by whoever
+// created it (createdBy). There are no teams.
 
 import { and, asc, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 
-import { projects, teamMemberships, teams } from '@praxis/db';
+import { projects } from '@praxis/db';
 import { type Database, db } from '@praxis/db/client';
 
 export interface ProjectSummary {
@@ -13,38 +12,6 @@ export interface ProjectSummary {
   description: string | null;
   createdAt: Date | null;
   archivedAt: Date | null;
-  teamId: string;
-  teamName: string;
-}
-
-export type ResolveCreateTeamResult = { teamId: string } | { error: 'needs_team' | 'forbidden' };
-
-/** Resolve which team a new project belongs to (STORY-57). With an explicit
- *  `teamId` the user must be a member of it (else `forbidden`); without one it
- *  defaults to their most-recent team, or `needs_team` when they're in none.
- *  Members may create in any team they belong to (not owner-gated). */
-export async function resolveCreateTeam(
-  userId: string,
-  teamId: string | undefined,
-  database: Database = db,
-): Promise<ResolveCreateTeamResult> {
-  if (teamId) {
-    const [member] = await database
-      .select({ teamId: teamMemberships.teamId })
-      .from(teamMemberships)
-      .where(and(eq(teamMemberships.teamId, teamId), eq(teamMemberships.userId, userId)))
-      .limit(1);
-    return member ? { teamId } : { error: 'forbidden' };
-  }
-
-  const [recent] = await database
-    .select({ teamId: teamMemberships.teamId })
-    .from(teamMemberships)
-    .innerJoin(teams, eq(teams.id, teamMemberships.teamId))
-    .where(eq(teamMemberships.userId, userId))
-    .orderBy(desc(teams.createdAt))
-    .limit(1);
-  return recent ? { teamId: recent.teamId } : { error: 'needs_team' };
 }
 
 /** Which slice of a user's projects to list. Defaults to `active` everywhere. */
@@ -96,8 +63,8 @@ export function parseProjectPatch(
   return { fields };
 }
 
-/** True iff the user is a member of the team that owns the project. The `db` is
- *  injectable for persistence tests; defaults to the @praxis/db/client singleton. */
+/** True iff the user created the project. The `db` is injectable for persistence
+ *  tests; defaults to the @praxis/db/client singleton. */
 export async function userOwnsProject(
   userId: string,
   projectId: string,
@@ -106,15 +73,14 @@ export async function userOwnsProject(
   const [row] = await database
     .select({ id: projects.id })
     .from(projects)
-    .innerJoin(teamMemberships, eq(teamMemberships.teamId, projects.teamId))
-    .where(and(eq(projects.id, projectId), eq(teamMemberships.userId, userId)))
+    .where(and(eq(projects.id, projectId), eq(projects.createdBy, userId)))
     .limit(1);
   return Boolean(row);
 }
 
-/** All projects in the user's team(s). Defaults to active (un-archived),
- *  newest first; pass `status` to list archived-only or all (STORY-40) and
- *  `sort` to order by recent / oldest / name (STORY-41). */
+/** All of the user's projects. Defaults to active (un-archived), newest first;
+ *  pass `status` to list archived-only or all and `sort` to order by recent /
+ *  oldest / name. */
 export async function listUserProjects(
   userId: string,
   opts: { status?: ProjectStatus; sort?: ProjectSort } = {},
@@ -142,13 +108,9 @@ export async function listUserProjects(
       description: projects.description,
       createdAt: projects.createdAt,
       archivedAt: projects.archivedAt,
-      teamId: projects.teamId,
-      teamName: teams.name,
     })
     .from(projects)
-    .innerJoin(teamMemberships, eq(teamMemberships.teamId, projects.teamId))
-    .innerJoin(teams, eq(teams.id, projects.teamId))
-    .where(and(eq(teamMemberships.userId, userId), archiveFilter))
+    .where(and(eq(projects.createdBy, userId), archiveFilter))
     .orderBy(order);
 }
 
@@ -171,10 +133,10 @@ export async function setProjectArchived(
   return Boolean(row);
 }
 
-/** Whether a project is archived (STORY-52). Call AFTER an ownership/membership
- *  check — this only reads archived_at. Used to gate interaction (sessions are
- *  refused, the workspace renders read-only) for cold-stored projects. A missing
- *  project reads as not-archived (the ownership check already 403/404s it). */
+/** Whether a project is archived. Call AFTER an ownership check — this only
+ *  reads archived_at. Used to gate interaction (sessions are refused, the
+ *  workspace renders read-only) for cold-stored projects. A missing project
+ *  reads as not-archived (the ownership check already 403/404s it). */
 export async function isProjectArchived(
   projectId: string,
   database: Database = db,
@@ -212,56 +174,14 @@ export async function updateProject(
     .update(projects)
     .set(patch)
     .where(eq(projects.id, projectId))
-    .returning({ id: projects.id });
-  if (updated.length === 0) return null;
-
-  // Re-select with the team join so the returned summary carries its team label
-  // (a RETURNING clause can't join — STORY-57 added teamName to ProjectSummary).
-  const [row] = await database
-    .select({
+    .returning({
       id: projects.id,
       name: projects.name,
       description: projects.description,
       createdAt: projects.createdAt,
       archivedAt: projects.archivedAt,
-      teamId: projects.teamId,
-      teamName: teams.name,
-    })
-    .from(projects)
-    .innerJoin(teams, eq(teams.id, projects.teamId))
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  return row ?? null;
-}
-
-/** The widest budget an owner/admin can set, USD (STORY-23). A guardrail, not a
- *  business rule — keeps a fat-fingered value from disabling the cap entirely. */
-export const BUDGET_MAX_USD = 100_000;
-
-/** Validate an untrusted budget value: a finite number in [0, BUDGET_MAX_USD].
- *  Returns the normalized 2-decimal string, or null when invalid. */
-export function parseBudgetUsd(value: unknown): string | null {
-  const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
-  if (!Number.isFinite(n) || n < 0 || n > BUDGET_MAX_USD) return null;
-  return n.toFixed(2);
-}
-
-/** Set a project's budget (USD) — owner-gated (team membership). Returns false
- *  when the project isn't the user's or doesn't exist. The caller validates the
- *  value via parseBudgetUsd. The `database` is injectable for tests. */
-export async function setProjectBudget(
-  userId: string,
-  projectId: string,
-  budgetUsd: string,
-  database: Database = db,
-): Promise<boolean> {
-  if (!(await userOwnsProject(userId, projectId, database))) return false;
-  const [row] = await database
-    .update(projects)
-    .set({ budgetUsd })
-    .where(eq(projects.id, projectId))
-    .returning({ id: projects.id });
-  return Boolean(row);
+    });
+  return updated[0] ?? null;
 }
 
 /** Delete a project the user owns (cascades its sessions). Returns false when the
@@ -273,32 +193,25 @@ export async function deleteProject(userId: string, projectId: string): Promise<
   return true;
 }
 
-/** Create a copy of a project the user owns: a new row in the same team, named
- *  "Copy of <name>", same template. Returns the new project's id + templateId
- *  (the caller triggers the sandbox clone via the orchestrator), or null when
- *  the source isn't the user's. The join enforces ownership. The `database` is
- *  injectable for persistence tests. */
+/** Create a copy of a project the user owns: a new row named "Copy of <name>",
+ *  same template. Returns the new project's id + templateId (the caller triggers
+ *  the sandbox clone via the orchestrator), or null when the source isn't the
+ *  user's. The `database` is injectable for persistence tests. */
 export async function duplicateProjectRow(
   userId: string,
   sourceProjectId: string,
   database: Database = db,
 ): Promise<{ id: string; templateId: string } | null> {
   const [src] = await database
-    .select({ name: projects.name, templateId: projects.templateId, teamId: projects.teamId })
+    .select({ name: projects.name, templateId: projects.templateId })
     .from(projects)
-    .innerJoin(teamMemberships, eq(teamMemberships.teamId, projects.teamId))
-    .where(and(eq(projects.id, sourceProjectId), eq(teamMemberships.userId, userId)))
+    .where(and(eq(projects.id, sourceProjectId), eq(projects.createdBy, userId)))
     .limit(1);
   if (!src) return null;
 
   const [row] = await database
     .insert(projects)
-    .values({
-      teamId: src.teamId,
-      name: `Copy of ${src.name}`,
-      templateId: src.templateId,
-      createdBy: userId,
-    })
+    .values({ name: `Copy of ${src.name}`, templateId: src.templateId, createdBy: userId })
     .returning({ id: projects.id });
   return { id: row!.id, templateId: src.templateId };
 }

@@ -36,15 +36,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     env: {
-      BETTER_AUTH_SECRET:
-        process.env.BETTER_AUTH_SECRET ?? 'e2e-only-32-chars-min-do-not-use-in-prod',
-      BETTER_AUTH_URL: baseURL,
       DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://praxis:praxis@127.0.0.1:5432/praxis',
-      // Force DevMailer regardless of host env (so the e2e doesn't
-      // accidentally hit Resend with a fake email).
-      RESEND_API_KEY: '',
-      // Standalone server reads PORT to choose its bind port (defaults
-      // to 3000, which collides with the prod praxis-web on this host).
       PORT: String(PORT),
       HOSTNAME: '127.0.0.1',
     },

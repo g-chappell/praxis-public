@@ -1,20 +1,14 @@
-import { headers } from 'next/headers';
 import Link from 'next/link';
 
-import { SignOutButton } from '@/components/sign-out-button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { TweaksPanel } from '@/components/tweaks-panel';
 import { Monogram } from '@/components/ui/monogram';
-import { isUserAdmin } from '@/lib/admin';
-import { getAuth } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/current-user';
 
-// Shared top navigation for signed-in pages so a user can always move between
-// surfaces. Self-contained (reads the session + role) so pages just render
-// <AppNav />. A richer workspace shell comes later (roadmap).
+// Shared top navigation. A local install has one user, so there's no sign-out or
+// admin — just the primary surfaces plus display tweaks.
 export async function AppNav() {
-  const session = await getAuth().api.getSession({ headers: await headers() });
-  if (!session?.user) return null;
-  const admin = await isUserAdmin(session.user.id);
+  const user = await getCurrentUser();
 
   const link = 'label-mono transition-colors hover:text-foreground';
 
@@ -27,11 +21,6 @@ export async function AppNav() {
         <Link href="/dashboard" className={link}>
           Projects
         </Link>
-        {admin && (
-          <Link href="/admin" className={link}>
-            Admin
-          </Link>
-        )}
         <Link href="/settings" className={link}>
           Settings
         </Link>
@@ -39,12 +28,7 @@ export async function AppNav() {
       <div className="flex items-center gap-2">
         <TweaksPanel />
         <ThemeToggle />
-        <SignOutButton />
-        <Monogram
-          variant="ink"
-          name={session.user.name || session.user.email}
-          title={session.user.email}
-        />
+        <Monogram variant="ink" name={user.name || user.email} title={user.email} />
       </div>
     </header>
   );

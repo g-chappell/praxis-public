@@ -1,13 +1,10 @@
-import { headers } from 'next/headers';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 import { AppNav } from '@/components/app-nav';
 import { CreateProjectForm } from '@/components/create-project-form';
 import { ProjectList } from '@/components/project-list';
-import { getAuth } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/current-user';
 import { listUserProjects, parseProjectStatus } from '@/lib/projects';
-import { getTeamsForUser } from '@/lib/teams';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -26,25 +23,13 @@ export default async function DashboardPage({
 }: {
   searchParams: { status?: string };
 }) {
-  const session = await getAuth().api.getSession({
-    headers: await headers(),
-  });
-
-  // Middleware redirects unauthenticated requests but the page-level
-  // check is the canonical guard (middleware only checks cookie presence,
-  // not validity).
-  if (!session?.user) {
-    redirect('/signin');
-  }
+  const user = await getCurrentUser();
 
   // The UI only toggles Active vs Archived (never 'all'); parseProjectStatus
   // defaults anything unexpected to active.
   const raw = parseProjectStatus(searchParams.status);
   const status = raw === 'archived' ? 'archived' : 'active';
-  const [projects, teams] = await Promise.all([
-    listUserProjects(session.user.id, { status }),
-    getTeamsForUser(session.user.id),
-  ]);
+  const projects = await listUserProjects(user.id, { status });
 
   return (
     <>
@@ -57,7 +42,7 @@ export default async function DashboardPage({
               Open one to resume, or start a new one.
             </p>
           </div>
-          <CreateProjectForm teams={teams.map((t) => ({ id: t.id, name: t.name }))} />
+          <CreateProjectForm />
         </div>
 
         <div className="mb-5 flex gap-1 border-b-2" role="tablist">
