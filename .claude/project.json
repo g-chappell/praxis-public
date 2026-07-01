@@ -1,111 +1,17 @@
 {
   "starterVersion": "0.1.0",
   "project": {
-    "name": "Praxis",
-    "slug": "praxis",
-    "created": "2026-05-31"
+    "name": "praxis-public",
+    "slug": "praxis-public",
+    "created": "2026-07-01"
   },
   "language": "TypeScript",
   "framework": "Next.js (apps/web) + Bun/Hono (services/orchestrator)",
-  "_workspacesNote": "Each entry carries scoped typecheck/test commands so the post-edit hook checks only the edited workspace (seconds), not the whole monorepo (~22s, which overran the hook timeout). pnpm/vitest path filters avoid hardcoding package names. Edits outside any workspace fall back to the project-level `commands` below.",
-  "workspaces": [
-    {
-      "path": "apps/web",
-      "commands": {
-        "typecheck": "pnpm --if-present typecheck",
-        "test": "pnpm exec vitest run --root ../.. apps/web"
-      }
-    },
-    {
-      "path": "services/orchestrator",
-      "commands": {
-        "typecheck": "pnpm --if-present typecheck",
-        "test": "pnpm exec vitest run --root ../.. services/orchestrator"
-      }
-    },
-    {
-      "path": "packages/db",
-      "commands": {
-        "typecheck": "pnpm --if-present typecheck",
-        "test": "pnpm exec vitest run --root ../.. packages/db"
-      }
-    },
-    {
-      "path": "packages/sandbox",
-      "commands": {
-        "typecheck": "pnpm --if-present typecheck",
-        "test": "pnpm exec vitest run --root ../.. packages/sandbox"
-      }
-    },
-    {
-      "path": "packages/acp-host",
-      "commands": {
-        "typecheck": "pnpm --if-present typecheck",
-        "test": "pnpm exec vitest run --root ../.. packages/acp-host"
-      }
-    },
-    {
-      "path": "packages/crypto",
-      "commands": {
-        "typecheck": "pnpm --if-present typecheck",
-        "test": "pnpm exec vitest run --root ../.. packages/crypto"
-      }
-    },
-    {
-      "path": "packages/shared",
-      "commands": {
-        "typecheck": "pnpm --if-present typecheck",
-        "test": "pnpm exec vitest run --root ../.. packages/shared"
-      }
-    },
-    {
-      "path": "templates/react-threejs-scene",
-      "commands": {
-        "typecheck": "pnpm --if-present typecheck",
-        "test": "pnpm exec vitest run --root ../.. templates/react-threejs-scene"
-      }
-    },
-    {
-      "path": "infrastructure/caddy"
-    },
-    {
-      "path": "infrastructure/docker"
-    },
-    {
-      "path": "infrastructure/deploy"
-    },
-    {
-      "path": "infrastructure/mcp-servers"
-    }
-  ],
   "commands": {
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm test",
     "lint": "pnpm lint",
     "build": "pnpm -r --if-present build",
     "dev": "pnpm -r --parallel --if-present dev"
-  },
-  "branchPrefix": "auto/",
-  "successThreshold": 5,
-  "ghBin": "gh",
-  "schedule": {
-    "cron": "0 * * * *",
-    "enabled": false
-  },
-  "host": {
-    "method": "systemd",
-    "serviceName": "claude-praxis"
-  },
-  "deploy": {
-    "target": "praxis.local",
-    "method": "docker",
-    "autoDeployOnMerge": true,
-    "healthCheckUrl": "https://api.praxis.local/health",
-    "healthCheckTimeoutSec": 90,
-    "rollbackOnFail": true,
-    "strategy": "rolling"
-  },
-  "hooks": {
-    "timeoutSec": 60
   }
 }
