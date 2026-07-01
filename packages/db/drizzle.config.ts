@@ -7,17 +7,12 @@ if (!process.env.DATABASE_URL) {
 export default defineConfig({
   dialect: 'postgresql',
   schema: './src/schema.ts',
-  out: './migrations',
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
-  // Rename the default `__drizzle_migrations` table to make multi-tenant
-  // co-existence with other Drizzle apps on a shared Postgres unambiguous.
-  // Praxis owns its own DB today, but the rename is cheap insurance.
-  migrations: {
-    table: 'praxis_migrations',
-    schema: 'public',
-  },
-  verbose: true,
-  strict: true,
+  // Local single-user: `drizzle-kit push` syncs the schema straight to the DB
+  // (no migration chain). strict:false keeps push non-interactive so it runs
+  // unattended in setup + CI.
+  strict: false,
+  verbose: false,
 });
